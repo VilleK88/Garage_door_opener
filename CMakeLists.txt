@@ -29,6 +29,8 @@ add_executable(${PROJECT_NAME}
         src/SwitchLedUnit.h
         main.cpp
         main.h
+        src/StepMotor.cpp
+        src/StepMotor.h
 )
 
 # Create map/bin/hex/uf2 files
@@ -39,6 +41,8 @@ target_link_libraries(${PROJECT_NAME}
         pico_stdlib
         hardware_pwm
         hardware_gpio
+        hardware_i2c
+        hardware_adc
 )
 
 # Disable usb output, enable uart output
