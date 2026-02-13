@@ -12,11 +12,15 @@
 // Array grouping all coil control pins for iteration
 static constexpr int coil_pins[] = {IN1, IN2, IN3, IN4};
 
+#define DEFAULT_STEPS_PER_REV 4096
+#define MOTOR_SLEEP_MS 2
+
 class StepMotor {
 public:
     explicit StepMotor(const std::array<uint, 4>& pins);
     void init_coil_pins() const;
     void step(int direction) const;
+    void run_step_motor(int count) const;
 private:
     std::array<uint, 4> coil_pins;
 };
