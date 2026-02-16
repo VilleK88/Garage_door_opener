@@ -31,6 +31,8 @@ add_executable(${PROJECT_NAME}
         main.h
         src/StepMotor.cpp
         src/StepMotor.h
+        src/SM.cpp
+        src/SM.h
 )
 
 # Create map/bin/hex/uf2 files
