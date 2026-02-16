@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
+#include "StepMotor.h"
 
 enum class CurrentState : uint8_t {
     initial = 0,
@@ -22,12 +23,14 @@ struct MainSmState {
     uint8_t state;
 };
 
+//class StepMotor;
+
 class SM final {
 public:
     SM();
-    void run();
+    void run_sm();
 
-    void nextState(CurrentState s);
+    void next_state(CurrentState s);
     bool checkState(CurrentState s) const;
     bool canPress() const;
 
@@ -39,6 +42,8 @@ private:
     void idle_st();
     void run_motor_st();
 
+    StepMotor stepMotor;
+
     static void set_sm_state(SmState& sms, uint8_t value);
     static bool validateCurrentState(const SmState& sms);
     void writeCurrentState(uint8_t value);
@@ -47,6 +52,5 @@ private:
     bool last_ms_valid_{false};
     uint32_t last_ms_{0};
 };
-
 
 #endif

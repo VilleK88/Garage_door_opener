@@ -23,10 +23,6 @@ add_compile_options(-Wall
 
 # Tell CMake where to find the executable source file
 add_executable(${PROJECT_NAME}
-        src/GPIOPin.cpp
-        src/GPIOPin.h
-        src/SwitchLedUnit.cpp
-        src/SwitchLedUnit.h
         main.cpp
         main.h
         src/StepMotor.cpp

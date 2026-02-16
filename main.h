@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include "pico/util/queue.h"
-#include "src/SwitchLedUnit.h"
+#include "src/SM.h"
 
 #define CLK_DIV 125 // PWM clock divider
 #define TOP 999 // PWM counter top value
@@ -12,6 +12,7 @@
 #define SW1 8 // middle button - light switch
 #define SW2 7 // left button - increases brightness
 #define BUTTONS_SIZE 3 // how many buttons
+static constexpr std::array<uint, 3> buttons = {SW0, SW1, SW2};
 
 #define LED1 22 // right LED
 #define LED2 21 // middle LED
@@ -36,9 +37,7 @@ typedef struct {
 } event_t;
 
 void gpio_callback(uint gpio, uint32_t event_mask);
-void init_sw_led_units(std::vector<std::shared_ptr<SwitchLedUnit>>& sw_led_units, const uint* buttons, const uint* leds);
-void init_buttons(const std::vector<std::shared_ptr<SwitchLedUnit>> &sw_led_units); // Initialize buttons
-void init_leds(const std::vector<std::shared_ptr<SwitchLedUnit>>& sw_led_units); // Initialize LED pins
+void init_buttons();
 uint clamp(int br); // returns value between 0 and TOP
 
 #endif

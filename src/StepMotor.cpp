@@ -15,7 +15,7 @@ void StepMotor::init_coil_pins() const {
     }
 }
 
-void StepMotor::step(int direction) const {
+void StepMotor::step(const int direction) const {
     const int half_step[8][4] = {
         {1, 0, 0, 0},
         {1, 1, 0, 0},
@@ -28,16 +28,16 @@ void StepMotor::step(int direction) const {
     };
 
     static int phase = 0;
-    phase = phase + direction & 7;
+    phase = (phase + direction) & 7;
     for (int i = 0; i < COIL_PINS_SIZE; i++) {
         gpio_put(coil_pins[i], half_step[phase][i]);
     }
 }
 
-void StepMotor::run_step_motor(const int count) const {
+void StepMotor::run_step_motor(const int count, const int direction) const {
     const int size = count * (steps_per_rev / 8);
     for (int i = 0; i < size; i++) {
-        step(1);
+        step(direction);
         sleep_ms(MOTOR_SLEEP_MS);
     }
 }
