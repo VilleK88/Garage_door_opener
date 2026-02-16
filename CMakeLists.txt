@@ -29,6 +29,10 @@ add_executable(${PROJECT_NAME}
         src/StepMotor.h
         src/SM.cpp
         src/SM.h
+        src/RotaryEncoder.cpp
+        src/RotaryEncoder.h
+        src/LimitSwitch.cpp
+        src/LimitSwitch.h
 )
 
 # Create map/bin/hex/uf2 files

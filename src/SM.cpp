@@ -1,5 +1,6 @@
 #include "SM.h"
 #include "StepMotor.h"
+#include "pico/time.h"
 
 SM::SM()
     : stepMotor(coil_pins),
@@ -35,5 +36,6 @@ void SM::idle_st() {
 }
 
 void SM::run_motor_st() {
-    stepMotor.run_step_motor(2, -1);
+    stepMotor.step(-1);
+    sleep_ms(MOTOR_SLEEP_MS);
 }

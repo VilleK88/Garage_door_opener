@@ -2,20 +2,37 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <cstdio>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "main.h"
 #include "src/SM.H"
+#include "src/RotaryEncoder.h"
+#include "src/LimitSwitch.h"
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
+RotaryEncoder* g_enc = nullptr;
 
 int main() {
     // Initialize chosen serial port
     stdio_init_all();
     // Initialize buttons
     init_buttons();
+
+    RotaryEncoder enc(ENC_A, ENC_B);
+    enc.init();
+    g_enc = &enc;
+
+    LimitSwitch left_limit(LIM_PIN_LEFT);
+    left_limit.init();
+    LimitSwitch right_limit(LIM_PIN_RIGHT);
+    right_limit.init();
+
+    int position = 0;
+    //bool calibrated = false;
+    //int max_pos = 0;
 
     SM sm;
 
@@ -34,6 +51,16 @@ int main() {
                 std::cout << "Right button pressed.\n";
             }
         }
+
+        EncEvent e;
+        while (enc.try_read(e)) {
+            position += (e.dir == EncDir::CW) ? 1 : -1;
+        }
+
+        static bool left_hit = false;
+        left_limit.detect_hit(left_hit, "Left");
+        static bool right_hit = false;
+        right_limit.detect_hit(right_hit, "Right");
 
         sm.run_sm();
     }
@@ -88,6 +115,14 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
             last_ms_l = now;
             constexpr event_t event = { .type = EV_SW2, .data = 1 };
             queue_try_add(&events, &event); // Add event to queue
+        }
+    }
+
+    if (g_enc && gpio == g_enc->a_pin()) {
+        if (event_mask & GPIO_IRQ_EDGE_RISE) {
+            bool b_state = gpio_get(g_enc->b_pin());
+            EncEvent ev{ b_state ? EncDir::CCW : EncDir::CW };
+            g_enc->push_from_isr(ev);
         }
     }
 }

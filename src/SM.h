@@ -1,5 +1,5 @@
-#ifndef STATEMACHINE_H
-#define STATEMACHINE_H
+#ifndef SM_H
+#define SM_H
 #pragma once
 #include <cstdint>
 #include <iostream>
