@@ -1,7 +1,6 @@
 #include "StateMachine.h"
 #include "StepMotor.h"
 #include "pico/time.h"
-#include "RotaryEncoder.h"
 
 StateMachine::StateMachine()
     : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT),
@@ -16,7 +15,6 @@ StateMachine::StateMachine()
 void StateMachine::run_sm() {
     switch (current_state_) {
         case CurrentState::initial: initial_st(); break;
-        case CurrentState::calib: calib_st(); break;
         case CurrentState::idle: idle_st(); break;
         case CurrentState::start_calib: start_calib_st(); break;
         case CurrentState::calib_open: calib_open_st(); break;
@@ -30,10 +28,6 @@ void StateMachine::next_state(const CurrentState s) {
 }
 
 void StateMachine::initial_st() {
-
-}
-
-void StateMachine::calib_st() {
 
 }
 

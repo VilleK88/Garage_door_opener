@@ -4,7 +4,6 @@
 #pragma once
 #include "hardware/gpio.h"
 #include "pico/time.h"
-//#include "StateMachine.h"
 
 static constexpr uint LIM_PIN_LEFT = 27;  // Left/Closed
 static constexpr uint LIM_PIN_RIGHT = 28; // Right/Open

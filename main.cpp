@@ -8,11 +8,9 @@
 #include "pico/util/queue.h"
 #include "main.h"
 #include "src/StateMachine.h"
-#include "src/RotaryEncoder.h"
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
-//RotaryEncoder* g_enc = nullptr;
 
 int main() {
     // Initialize chosen serial port
@@ -126,8 +124,13 @@ void init_buttons() {
         gpio_set_dir(buttons[i], GPIO_IN); // Set as input
         gpio_pull_up(buttons[i]); // Enable internal pull-up resistor (button reads high = true when not pressed)
         // Configure button interrupt and callback
-        gpio_set_irq_enabled_with_callback(buttons[i], GPIO_IRQ_EDGE_FALL |
+        if (i == 0) {
+            gpio_set_irq_enabled_with_callback(buttons[i], GPIO_IRQ_EDGE_FALL |
             GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
+        }
+        else {
+            gpio_set_irq_enabled(buttons[i], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true);
+        }
     }
 }
 

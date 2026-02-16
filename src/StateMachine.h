@@ -46,7 +46,6 @@ private:
     std::optional<int> highest_position;
 
     void initial_st();
-    void calib_st();
     void idle_st();
     void start_calib_st();
     void calib_open_st();
