@@ -20,7 +20,7 @@ int main() {
     // Initialize Rotary Encoder
     init_encoder();
 
-    int position = 0;
+    //int position = 0;
 
     StateMachine sm;
 
@@ -30,18 +30,24 @@ int main() {
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_SW0 && event.data == 1) {
                 std::cout << "Left button pressed.\n";
-                sm.next_state(CurrentState::start_calib);
             }
             if (event.type == EV_SW1 && event.data == 1) {
                 std::cout << "Middle button pressed.\n";
             }
             if (event.type == EV_SW2 && event.data == 1) {
                 std::cout << "Right button pressed.\n";
+                if (sm.check_current_state() != CurrentState::idle) {
+                    sm.next_state(CurrentState::start_calib);
+                }
+                else {
+                    if (*sm.get_door_status() == 1)
+                        sm.next_state(CurrentState::open);
+                    else if (*sm.get_door_status() == 0)
+                        sm.next_state(CurrentState::close);
+                }
             }
             if (event.type == EVENT_ENCODER) {
-                position += event.data;
-                sm.update_position(position);
-                std::cout << "Position: " << position << "\n";
+                sm.update_position(sm.get_position() + event.data);
             }
         }
 
