@@ -7,7 +7,7 @@
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "main.h"
-#include "src/SM.H"
+#include "src/StateMachine.h"
 #include "src/RotaryEncoder.h"
 #include "src/LimitSwitch.h"
 
@@ -25,16 +25,16 @@ int main() {
     enc.init();
     g_enc = &enc;
 
-    LimitSwitch left_limit(LIM_PIN_LEFT);
+    /*LimitSwitch left_limit(LIM_PIN_LEFT);
     left_limit.init();
     LimitSwitch right_limit(LIM_PIN_RIGHT);
-    right_limit.init();
+    right_limit.init();*/
 
     int position = 0;
     //bool calibrated = false;
     //int max_pos = 0;
 
-    SM sm;
+    StateMachine sm;
 
     event_t event;
     while (true) {
@@ -57,10 +57,10 @@ int main() {
             position += (e.dir == EncDir::CW) ? 1 : -1;
         }
 
-        static bool left_hit = false;
+        /*static bool left_hit = false;
         left_limit.detect_hit(left_hit, "Left");
         static bool right_hit = false;
-        right_limit.detect_hit(right_hit, "Right");
+        right_limit.detect_hit(right_hit, "Right");*/
 
         sm.run_sm();
     }

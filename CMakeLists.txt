@@ -27,8 +27,8 @@ add_executable(${PROJECT_NAME}
         main.h
         src/StepMotor.cpp
         src/StepMotor.h
-        src/SM.cpp
-        src/SM.h
+        src/StateMachine.cpp
+        src/StateMachine.h
         src/RotaryEncoder.cpp
         src/RotaryEncoder.h
         src/LimitSwitch.cpp

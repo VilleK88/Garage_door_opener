@@ -6,12 +6,15 @@
 #include <vector>
 #include <array>
 #include "StepMotor.h"
+#include "LimitSwitch.h"
 
 enum class CurrentState : uint8_t {
     initial = 0,
     calib = 1,
     idle = 2,
-    run_motor = 3
+    run_motor = 3,
+    open = 4,
+    close = 5
 };
 
 struct SmState {
@@ -25,9 +28,9 @@ struct MainSmState {
 
 //class StepMotor;
 
-class SM final {
+class StateMachine final {
 public:
-    SM();
+    StateMachine();
     void run_sm();
 
     void next_state(CurrentState s);
@@ -41,8 +44,12 @@ private:
     void calib_st();
     void idle_st();
     void run_motor_st();
+    void open_st();
+    void close_st();
 
     StepMotor stepMotor;
+    LimitSwitch left_limit;
+    LimitSwitch right_limit;
 
     static void set_sm_state(SmState& sms, uint8_t value);
     static bool validateCurrentState(const SmState& sms);

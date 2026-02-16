@@ -13,7 +13,7 @@
 static constexpr std::array<uint, 4> coil_pins = {IN1, IN2, IN3, IN4};
 
 #define DEFAULT_STEPS_PER_REV 4096
-#define MOTOR_SLEEP_MS 2
+#define MOTOR_SLEEP_MS 1
 
 class StepMotor {
 public:
