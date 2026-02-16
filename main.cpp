@@ -9,25 +9,20 @@
 #include "main.h"
 #include "src/StateMachine.h"
 #include "src/RotaryEncoder.h"
-#include "src/LimitSwitch.h"
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
-RotaryEncoder* g_enc = nullptr;
+//RotaryEncoder* g_enc = nullptr;
 
 int main() {
     // Initialize chosen serial port
     stdio_init_all();
     // Initialize buttons
     init_buttons();
-
-    RotaryEncoder enc(ENC_A, ENC_B);
-    enc.init();
-    g_enc = &enc;
+    // Initialize Rotary Encoder
+    init_encoder();
 
     int position = 0;
-    //bool calibrated = false;
-    //int max_pos = 0;
 
     StateMachine sm;
 
@@ -45,13 +40,11 @@ int main() {
             if (event.type == EV_SW2 && event.data == 1) {
                 std::cout << "Right button pressed.\n";
             }
-        }
-
-        EncEvent e;
-        while (enc.try_read(e)) {
-            position += (e.dir == EncDir::CW) ? 1 : -1;
-            sm.update_position(position);
-            std::cout << "Position: " << position << "\n";
+            if (event.type == EVENT_ENCODER) {
+                position += event.data;
+                sm.update_position(position);
+                std::cout << "Position: " << position << "\n";
+            }
         }
 
         sm.run_sm();
@@ -110,11 +103,13 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
         }
     }
 
-    if (g_enc && gpio == g_enc->a_pin()) {
+    if (gpio == ENC_A) {
         if (event_mask & GPIO_IRQ_EDGE_RISE) {
-            bool b_state = gpio_get(g_enc->b_pin());
-            EncEvent ev{ b_state ? EncDir::CCW : EncDir::CW };
-            g_enc->push_from_isr(ev);
+            bool b_state = gpio_get(ENC_B);
+            event_t ev;
+            ev.type = EVENT_ENCODER;
+            ev.data = b_state ? -1 : +1;
+            queue_try_add(&events, &ev);
         }
     }
 }
@@ -124,9 +119,7 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
 //------------------------------------------------------------
 void init_buttons() {
     // Initialize event queue for Interrupt Service Routine (ISR)
-    // 32 chosen as a safe buffer size: large enough to handle bursts of interrupts
-    // without losing events, yet small enough to keep RAM usage minimal.
-    queue_init(&events, sizeof(event_t), 32);
+    queue_init(&events, sizeof(event_t), 128);
 
     for (int i = 0; i < BUTTONS_SIZE; i++) {
         gpio_init(buttons[i]); // Initialize GPIO pin
@@ -136,4 +129,12 @@ void init_buttons() {
         gpio_set_irq_enabled_with_callback(buttons[i], GPIO_IRQ_EDGE_FALL |
             GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
     }
+}
+
+void init_encoder() {
+    gpio_init(ENC_A);
+    gpio_set_dir(ENC_A, GPIO_IN);
+    gpio_init(ENC_B);
+    gpio_set_dir(ENC_B, GPIO_IN);
+    gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_RISE, true);
 }

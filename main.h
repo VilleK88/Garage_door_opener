@@ -27,8 +27,11 @@ static constexpr std::array<uint, 3> buttons = {SW0, SW1, SW2};
 
 #define DEBOUNCE_MS 10 // Debounce delay in milliseconds
 
+static constexpr uint ENC_A = 14;
+static constexpr uint ENC_B = 15;
+
 // Type of event coming from the interrupt callback
-typedef enum { EV_SW0, EV_SW1, EV_SW2 } event_type;
+typedef enum { EV_SW0, EV_SW1, EV_SW2, EVENT_ENCODER } event_type;
 
 // Generic event passed from ISR to main loop through a queue
 typedef struct {
@@ -38,6 +41,7 @@ typedef struct {
 
 void gpio_callback(uint gpio, uint32_t event_mask);
 void init_buttons();
+void init_encoder();
 uint clamp(int br); // returns value between 0 and TOP
 
 #endif
