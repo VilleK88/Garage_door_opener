@@ -19,11 +19,10 @@ void LimitSwitch::detect_hit(bool &hit, const std::string& text) const {
     }
 }
 
-bool LimitSwitch::is_pressed_debounced(const uint32_t ms) const {
+bool LimitSwitch::is_pressed_debounced() const {
     if (gpio_get(pin) == 0) {
         absolute_time_t time_0 = get_absolute_time();
-        while (absolute_time_diff_us(time_0, get_absolute_time()) <
-            static_cast<int64_t>(ms) * 1000) {
+        while (absolute_time_diff_us(time_0, get_absolute_time()) < LIM_DB_US) {
                 if (gpio_get(pin) != 0)
                     return false;
             }
