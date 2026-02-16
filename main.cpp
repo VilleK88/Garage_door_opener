@@ -25,11 +25,6 @@ int main() {
     enc.init();
     g_enc = &enc;
 
-    /*LimitSwitch left_limit(LIM_PIN_LEFT);
-    left_limit.init();
-    LimitSwitch right_limit(LIM_PIN_RIGHT);
-    right_limit.init();*/
-
     int position = 0;
     //bool calibrated = false;
     //int max_pos = 0;
@@ -42,7 +37,7 @@ int main() {
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_SW0 && event.data == 1) {
                 std::cout << "Left button pressed.\n";
-                sm.next_state(CurrentState::run_motor);
+                sm.next_state(CurrentState::start_calib);
             }
             if (event.type == EV_SW1 && event.data == 1) {
                 std::cout << "Middle button pressed.\n";
@@ -55,12 +50,9 @@ int main() {
         EncEvent e;
         while (enc.try_read(e)) {
             position += (e.dir == EncDir::CW) ? 1 : -1;
+            sm.update_position(position);
+            std::cout << "Position: " << position << "\n";
         }
-
-        /*static bool left_hit = false;
-        left_limit.detect_hit(left_hit, "Left");
-        static bool right_hit = false;
-        right_limit.detect_hit(right_hit, "Right");*/
 
         sm.run_sm();
     }

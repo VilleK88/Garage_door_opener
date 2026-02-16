@@ -25,6 +25,7 @@ public:
 private:
     uint pin_a, pin_b;
     queue_t q_;
+    int position;
 };
 
 #endif
