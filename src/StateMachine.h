@@ -37,14 +37,15 @@ public:
     void run_sm();
     void next_state(CurrentState st, const std::string& st_text);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
-    CurrentState check_st() const;
-    [[nodiscard]] bool check_calib_status() const;
-    [[nodiscard]] bool get_door_status() const;
+    [[nodiscard]] CurrentState check_st() const;
+    //[[nodiscard]] bool check_calib_status() const;
+    //[[nodiscard]] bool get_door_status() const;
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
-    void reset_position();
-    void change_door_moving_status(bool is_door_moving);
-    bool get_door_moving_status() const;
+    //void reset_position();
+    //void change_door_moving_status(bool is_door_moving);
+    //bool get_door_moving_status() const;
+    void start_calibration();
     void handle_door();
 private:
     StepMotor stepMotor;
@@ -54,12 +55,12 @@ private:
     int lowest_position;
     int highest_position;
     bool calibrated;
-    bool next_direction_door; // if door should be closing or opening
+    bool next_direction; // if door should be closing or opening
     bool door_moving;
 
     void initial_st();
     void idle_st();
-    void start_calib_st();
+    void calib_st();
     void calib_open_st();
     void calib_close_st();
     void open_st();
@@ -68,15 +69,15 @@ private:
 
     bool every_ms(uint32_t interval_ms);
 
-    static void set_sm_state(SmState& sms, uint8_t value);
-    static bool validateCurrentState(const SmState& sms);
-    void writeCurrentState(uint8_t value);
+    //static void set_sm_state(SmState& sms, uint8_t value);
+    //static bool validateCurrentState(const SmState& sms);
+    //void writeCurrentState(uint8_t value);
 
     using Handler = void (StateMachine::*)();
     static constexpr Handler handlers[] = {
         &StateMachine::initial_st,
         &StateMachine::idle_st,
-        &StateMachine::start_calib_st,
+        &StateMachine::calib_st,
         &StateMachine::calib_open_st,
         &StateMachine::calib_close_st,
         &StateMachine::open_st,
