@@ -50,7 +50,7 @@ private:
     int lowest_position;
     int highest_position;
     bool calib_status;
-    bool open_door; // if door should be closing or opening
+    bool next_direction_door; // if door should be closing or opening
 
     void initial_st();
     void idle_st();
@@ -60,6 +60,8 @@ private:
     void open_st();
     void close_st();
     void correction_st();
+
+    bool every_ms(uint32_t interval_ms);
 
     static void set_sm_state(SmState& sms, uint8_t value);
     static bool validateCurrentState(const SmState& sms);

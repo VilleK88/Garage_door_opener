@@ -32,13 +32,13 @@ void StepMotor::step(const int direction) const {
     for (int i = 0; i < COIL_PINS_SIZE; i++) {
         gpio_put(coil_pins[i], half_step[phase][i]);
     }
-    sleep_ms(MOTOR_SLEEP_MS);
+    //sleep_ms(MOTOR_SLEEP_MS);
 }
 
 void StepMotor::run_step_motor(const int count, const int direction) const {
     const int size = count * (steps_per_rev / 8);
     for (int i = 0; i < size; i++) {
         step(direction);
-        sleep_ms(MOTOR_SLEEP_MS);
+        //sleep_ms(MOTOR_SLEEP_MS);
     }
 }

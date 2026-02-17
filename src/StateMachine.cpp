@@ -5,7 +5,7 @@
 StateMachine::StateMachine()
     : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT),
         right_limit(LIM_PIN_RIGHT), position(0), lowest_position(0),
-        highest_position(0), calib_status(false), open_door(false), current_state(CurrentState::initial)
+        highest_position(0), calib_status(false), next_direction_door(false), current_state(CurrentState::initial)
 {
     stepMotor.init_coil_pins();
     left_limit.init();
@@ -29,6 +29,7 @@ void StateMachine::run_sm() {
 void StateMachine::next_state(const CurrentState s, const std::string& st_text) {
     std::cout << st_text << "\n";
     current_state = s;
+    last_ms_valid_ = false;
 }
 
 void StateMachine::initial_st() {
@@ -48,7 +49,8 @@ void StateMachine::start_calib_st() {
         next_state(CurrentState::calib_open, "Calibration open door state");
     }
     else {
-        stepMotor.step(-1);
+        if (every_ms(1))
+            stepMotor.step(-1);
     }
 }
 
@@ -60,7 +62,8 @@ void StateMachine::calib_open_st() {
         next_state(CurrentState::calib_close, "Calibration close door state");
     }
     else {
-        stepMotor.step(1);
+        if (every_ms(1))
+            stepMotor.step(1);
     }
 }
 
@@ -68,7 +71,7 @@ void StateMachine::calib_close_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
-        if (position < 0) {
+        /*if (position < 0) {
             std::cout << "Highest position: " << highest_position << "\n";
             std::cout << "Lowest position: " << position << "\n";
             highest_position -= position;
@@ -76,16 +79,19 @@ void StateMachine::calib_close_st() {
         }
         else {
             lowest_position = position;
-        }
+        }*/
+        position = 0;
+        lowest_position = 0;
 
         std::cout << "Calibration completed.\n";
         std::cout << "Highest position: " << highest_position << "\n";
         std::cout << "Lowest position: " << lowest_position << "\n";
-        open_door = true;
+        next_direction_door = true;
         next_state(CurrentState::step_correction, "Step correction state");
     }
     else {
-        stepMotor.step(-1);
+        if (every_ms(1))
+            stepMotor.step(-1);
     }
 
 }
@@ -93,12 +99,13 @@ void StateMachine::calib_close_st() {
 void StateMachine::open_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
-    if (right_hit || position >= highest_position - 2) {
-        open_door = false;
+    if (right_hit || position >= highest_position - 1) {
+        next_direction_door = false;
         next_state(CurrentState::idle, "Idle state");
     }
     else {
-        stepMotor.step(1);
+        if (every_ms(1))
+            stepMotor.step(1);
     }
 }
 
@@ -106,21 +113,23 @@ void StateMachine::close_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit || position <= lowest_position + 2) {
-        open_door = true;
+        next_direction_door = true;
         next_state(CurrentState::idle, "Idle state");
     }
     else {
-        stepMotor.step(-1);
+        if (every_ms(1))
+            stepMotor.step(-1);
     }
 }
 
 void StateMachine::correction_st() {
-    if (position >= lowest_position + 1) {
+    if (position >= lowest_position + 2) {
         calib_status = true;
         next_state(CurrentState::idle, "Idle state");
     }
     else {
-        stepMotor.step(1);
+        if (every_ms(1))
+            stepMotor.step(1);
     }
 }
 
@@ -134,7 +143,7 @@ bool StateMachine::check_calib_status() const {
 
 // Should door be closing or opening
 bool StateMachine::get_door_status() const {
-    return open_door;
+    return next_direction_door;
 }
 
 void StateMachine::update_position(const int new_position) {
@@ -148,4 +157,19 @@ int StateMachine::get_position() const {
 
 void StateMachine::reset_position() {
     position = 0;
+}
+
+bool StateMachine::every_ms(uint32_t interval_ms) {
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    if (!last_ms_valid_) {
+        last_ms_ = now;
+        last_ms_valid_ = true;
+    }
+
+    if (now - last_ms_ >= interval_ms) {
+        last_ms_ = now;
+        return true;
+    }
+
+    return false;
 }
