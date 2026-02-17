@@ -31,6 +31,8 @@ add_executable(${PROJECT_NAME}
         src/StateMachine.h
         src/LimitSwitch.cpp
         src/LimitSwitch.h
+        src/Eeprom.cpp
+        src/Eeprom.h
 )
 
 # Create map/bin/hex/uf2 files
