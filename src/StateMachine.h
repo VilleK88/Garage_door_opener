@@ -34,10 +34,11 @@ class StateMachine final {
 public:
     StateMachine();
     void run_sm();
-    void next_state(CurrentState s);
+    void next_state(CurrentState s, const std::string& st_text);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
-    CurrentState check_current_state() const;
-    std::optional<int> get_door_status() const;
+    CurrentState check_st() const;
+    [[nodiscard]] bool check_calib_status() const;
+    [[nodiscard]] bool get_door_status() const;
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
     void reset_position();
@@ -46,9 +47,10 @@ private:
     LimitSwitch left_limit;
     LimitSwitch right_limit;
     int position;
-    std::optional<int> lowest_position;
-    std::optional<int> highest_position;
-    std::optional<int> door_status;
+    int lowest_position;
+    int highest_position;
+    bool calib_status;
+    bool open_door; // if door should be closing or opening
 
     void initial_st();
     void idle_st();

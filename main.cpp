@@ -36,14 +36,15 @@ int main() {
             }
             if (event.type == EV_SW2 && event.data == 1) {
                 std::cout << "Right button pressed.\n";
-                if (sm.check_current_state() != CurrentState::idle) {
-                    sm.next_state(CurrentState::start_calib);
-                }
+                if (sm.check_calib_status() == false)
+                    sm.next_state(CurrentState::start_calib, "Calibration state");
                 else {
-                    if (*sm.get_door_status() == 1)
-                        sm.next_state(CurrentState::open);
-                    else if (*sm.get_door_status() == 0)
-                        sm.next_state(CurrentState::close);
+                    if (sm.check_st() == CurrentState::idle) {
+                        if (sm.get_door_status() == false)
+                            sm.next_state(CurrentState::close, "Close door state");
+                        else if (sm.get_door_status() == true)
+                            sm.next_state(CurrentState::open, "Open door state");
+                    }
                 }
             }
             if (event.type == EVENT_ENCODER) {

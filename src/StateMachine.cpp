@@ -4,8 +4,8 @@
 
 StateMachine::StateMachine()
     : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT),
-        right_limit(LIM_PIN_RIGHT), position(0), lowest_position(std::nullopt),
-        highest_position(std::nullopt), current_state(CurrentState::initial)
+        right_limit(LIM_PIN_RIGHT), position(0), lowest_position(0),
+        highest_position(0), calib_status(false), open_door(false), current_state(CurrentState::initial)
 {
     stepMotor.init_coil_pins();
     left_limit.init();
@@ -26,7 +26,8 @@ void StateMachine::run_sm() {
     }
 }
 
-void StateMachine::next_state(const CurrentState s) {
+void StateMachine::next_state(const CurrentState s, const std::string& st_text) {
+    std::cout << st_text << "\n";
     current_state = s;
 }
 
@@ -47,16 +48,8 @@ void StateMachine::start_calib_st() {
         direction = 1;
         position = 0;
         std::cout << "Change to open state.\n";
-        next_state(CurrentState::calib_open);
+        next_state(CurrentState::calib_open, "Calibration open door state");
     }
-
-    /*static bool right_hit = false;
-    right_limit.detect_hit(right_hit, "Right");
-    if (right_hit) {
-        direction = -1;
-        std::cout << "Change to close state.\n";
-        next_state(CurrentState::calib_close);
-    }*/
 
     stepMotor.step(direction);
     sleep_ms(MOTOR_SLEEP_MS);
@@ -67,7 +60,7 @@ void StateMachine::calib_open_st() {
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit) {
         highest_position = position;
-        if (lowest_position.has_value()) {
+        /*if (lowest_position.has_value()) {
             std::cout << "Calibration completed.\n";
             std::cout << "Highest position: " << *highest_position << "\n";
             std::cout << "Lowest position: " << *lowest_position << "\n";
@@ -76,7 +69,8 @@ void StateMachine::calib_open_st() {
         }
         else {
             next_state(CurrentState::calib_close);
-        }
+        }*/
+        next_state(CurrentState::calib_close, "Calibration close door state");
     }
 
     stepMotor.step(1);
@@ -88,23 +82,20 @@ void StateMachine::calib_close_st() {
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
         if (lowest_position < 0) {
-            *highest_position -= *lowest_position;
+            std::cout << "Highest position: " << highest_position << "\n";
+            std::cout << "Lowest position: " << lowest_position << "\n";
+            highest_position -= lowest_position;
             lowest_position = 0;
         }
         else {
             lowest_position = position;
         }
 
-        if (highest_position.has_value()) {
-            std::cout << "Calibration completed.\n";
-            std::cout << "Highest position: " << *highest_position << "\n";
-            std::cout << "Lowest position: " << *lowest_position << "\n";
-            door_status = 0;
-            next_state(CurrentState::step_correction);
-        }
-        else {
-            next_state(CurrentState::calib_open);
-        }
+        std::cout << "Calibration completed.\n";
+        std::cout << "Highest position: " << highest_position << "\n";
+        std::cout << "Lowest position: " << lowest_position << "\n";
+        open_door = true;
+        next_state(CurrentState::step_correction, "Step correction state");
     }
 
     stepMotor.step(-1);
@@ -114,14 +105,9 @@ void StateMachine::calib_close_st() {
 void StateMachine::open_st() {
     static bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
-    if (right_hit) {
-        door_status = 1;
-        next_state(CurrentState::idle);
-    }
-
-    if (position >= *highest_position - 4) {
-        door_status = 1;
-        next_state(CurrentState::idle);
+    if (right_hit || position >= highest_position - 2) {
+        open_door = false;
+        next_state(CurrentState::idle, "Idle state");
     }
 
     stepMotor.step(1);
@@ -131,14 +117,9 @@ void StateMachine::open_st() {
 void StateMachine::close_st() {
     static bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
-    if (left_hit) {
-        door_status = 0;
-        next_state(CurrentState::idle);
-    }
-
-    if (position <= *highest_position + 4) {
-        door_status = 0;
-        next_state(CurrentState::idle);
+    if (left_hit || position <= lowest_position + 2) {
+        open_door = true;
+        next_state(CurrentState::idle, "Idle state");
     }
 
     stepMotor.step(-1);
@@ -146,8 +127,9 @@ void StateMachine::close_st() {
 }
 
 void StateMachine::correction_st() {
-    if (position >= *lowest_position + 2) {
-        next_state(CurrentState::idle);
+    if (position >= lowest_position + 2) {
+        calib_status = true;
+        next_state(CurrentState::idle, "Idle state");
     }
     else {
         stepMotor.step(1);
@@ -155,12 +137,17 @@ void StateMachine::correction_st() {
     }
 }
 
-CurrentState StateMachine::check_current_state() const {
+CurrentState StateMachine::check_st() const {
     return current_state;
 }
 
-std::optional<int> StateMachine::get_door_status() const {
-    return door_status;
+bool StateMachine::check_calib_status() const {
+    return calib_status;
+}
+
+// Should door be closing or opening
+bool StateMachine::get_door_status() const {
+    return open_door;
 }
 
 void StateMachine::update_position(const int new_position) {
