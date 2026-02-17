@@ -19,26 +19,19 @@ int main() {
     init_buttons();
     // Initialize Rotary Encoder
     init_encoder();
-
-    //int position = 0;
-
+    // Initialize state machine
     StateMachine sm;
 
     event_t event;
     while (true) {
 
         while (queue_try_remove(&events, &event)) {
-            if (event.type == EV_SW0 && event.data == 1) {
-                std::cout << "Left button pressed.\n";
+            if (event.type == EV_CALIB && event.data == 1) {
+                sm.next_state(CurrentState::start_calib, "Calibration state");
             }
             if (event.type == EV_SW1 && event.data == 1) {
                 std::cout << "Middle button pressed.\n";
-            }
-            if (event.type == EV_SW2 && event.data == 1) {
-                std::cout << "Right button pressed.\n";
-                if (sm.check_calib_status() == false)
-                    sm.next_state(CurrentState::start_calib, "Calibration state");
-                else {
+                if (sm.check_calib_status()) {
                     if (sm.check_st() == CurrentState::idle) {
                         if (sm.get_door_status() == false)
                             sm.next_state(CurrentState::close, "Close door state");
@@ -58,20 +51,32 @@ int main() {
 
 void gpio_callback(uint const gpio, uint32_t const event_mask) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
+    static bool sw0_down = false;
+    static bool sw2_down = false;
+    static bool calib_latched = false;
 
     if (gpio == SW0) {
         static uint32_t last_ms_r = 0; // Store last interrupt time
         // Detect button release (rising edge)
         if (event_mask & GPIO_IRQ_EDGE_RISE && now - last_ms_r >= DEBOUNCE_MS) {
             last_ms_r = now;
+            sw0_down = false;
+            calib_latched = false;
             constexpr event_t event = { .type = EV_SW0, .data = 0 };
             queue_try_add(&events, &event); // Add event to queue
         }
         // Detect button press (falling edge)
         if (event_mask & GPIO_IRQ_EDGE_FALL && now - last_ms_r >= DEBOUNCE_MS) {
             last_ms_r = now;
+            sw0_down = true;
             constexpr event_t event = { .type = EV_SW0, .data = 1 };
             queue_try_add(&events, &event); // Add event to queue
+
+            if (sw2_down && !calib_latched) {
+                calib_latched = true;
+                constexpr event_t ce = { .type = EV_CALIB, .data = 1 };
+                queue_try_add(&events, &ce);
+            }
         }
     }
 
@@ -97,14 +102,23 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
         // Detect button release (rising edge)
         if (event_mask & GPIO_IRQ_EDGE_RISE && now - last_ms_l >= DEBOUNCE_MS) {
             last_ms_l = now;
+            sw2_down = false;
+            calib_latched = false;
             constexpr event_t event = { .type = EV_SW2, .data = 0 };
             queue_try_add(&events, &event); // Add event to queue
         }
         // Detect button press (falling edge)
         if (event_mask & GPIO_IRQ_EDGE_FALL && now - last_ms_l >= DEBOUNCE_MS) {
             last_ms_l = now;
+            sw2_down = true;
             constexpr event_t event = { .type = EV_SW2, .data = 1 };
             queue_try_add(&events, &event); // Add event to queue
+
+            if (sw0_down && !calib_latched) {
+                calib_latched = true;
+                constexpr event_t ce = { .type = EV_CALIB, .data = 1 };
+                queue_try_add(&events, &ce);
+            }
         }
     }
 
