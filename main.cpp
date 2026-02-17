@@ -31,14 +31,7 @@ int main() {
             }
             if (event.type == EV_SW1 && event.data == 1) {
                 std::cout << "Middle button pressed.\n";
-                if (sm.check_calib_status()) {
-                    if (sm.check_st() == CurrentState::idle) {
-                        if (sm.get_door_status() == false)
-                            sm.next_state(CurrentState::close, "Close door state");
-                        else if (sm.get_door_status() == true)
-                            sm.next_state(CurrentState::open, "Open door state");
-                    }
-                }
+                sm.handle_door();
             }
             if (event.type == EVENT_ENCODER) {
                 sm.update_position(sm.get_position() + event.data);

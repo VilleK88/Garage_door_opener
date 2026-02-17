@@ -5,7 +5,8 @@
 StateMachine::StateMachine()
     : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT),
         right_limit(LIM_PIN_RIGHT), position(0), lowest_position(0),
-        highest_position(0), calib_status(false), next_direction_door(false), current_state(CurrentState::initial)
+        highest_position(0), calibrated(false), next_direction_door(false),
+        door_moving(false), current_state(CurrentState::initial)
 {
     stepMotor.init_coil_pins();
     left_limit.init();
@@ -13,22 +14,22 @@ StateMachine::StateMachine()
 }
 
 void StateMachine::run_sm() {
-    switch (current_state) {
-        case CurrentState::initial: initial_st(); break;
-        case CurrentState::idle: idle_st(); break;
-        case CurrentState::start_calib: start_calib_st(); break;
-        case CurrentState::calib_open: calib_open_st(); break;
-        case CurrentState::calib_close: calib_close_st(); break;
-        case CurrentState::open: open_st(); break;
-        case CurrentState::close: close_st(); break;
-        case CurrentState::step_correction: correction_st(); break;
-        default: initial_st(); break;
-    }
+    const auto states = static_cast<uint8_t>(current_state);
+    if (states >= std::size(handlers))
+        (this->*handlers[0])();
+    else
+        (this->*handlers[states])();
 }
 
-void StateMachine::next_state(const CurrentState s, const std::string& st_text) {
+void StateMachine::next_state(const CurrentState st, const std::string& st_text) {
     std::cout << st_text << "\n";
-    current_state = s;
+
+    if (st != CurrentState::initial && st != CurrentState::idle)
+        door_moving = true;
+    else
+        door_moving = false;
+
+    current_state = st;
     last_ms_valid_ = false;
 }
 
@@ -71,15 +72,6 @@ void StateMachine::calib_close_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
-        /*if (position < 0) {
-            std::cout << "Highest position: " << highest_position << "\n";
-            std::cout << "Lowest position: " << position << "\n";
-            highest_position -= position;
-            lowest_position = 0;
-        }
-        else {
-            lowest_position = position;
-        }*/
         position = 0;
         lowest_position = 0;
 
@@ -124,7 +116,7 @@ void StateMachine::close_st() {
 
 void StateMachine::correction_st() {
     if (position >= lowest_position + 2) {
-        calib_status = true;
+        calibrated = true;
         next_state(CurrentState::idle, "Idle state");
     }
     else {
@@ -138,7 +130,7 @@ CurrentState StateMachine::check_st() const {
 }
 
 bool StateMachine::check_calib_status() const {
-    return calib_status;
+    return calibrated;
 }
 
 // Should door be closing or opening
@@ -157,6 +149,28 @@ int StateMachine::get_position() const {
 
 void StateMachine::reset_position() {
     position = 0;
+}
+
+void StateMachine::change_door_moving_status(bool is_door_moving) {
+    door_moving = is_door_moving;
+}
+
+bool StateMachine::get_door_moving_status() const {
+    return door_moving;
+}
+
+void StateMachine::handle_door() {
+    if (calibrated) {
+        if (!door_moving) {
+            if (!next_direction_door)
+                next_state(CurrentState::close, "Close door state");
+            else
+                next_state(CurrentState::open, "Open door state");
+        }
+        else {
+            next_state(CurrentState::idle, "Idle state");
+        }
+    }
 }
 
 bool StateMachine::every_ms(uint32_t interval_ms) {

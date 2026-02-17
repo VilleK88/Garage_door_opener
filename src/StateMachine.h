@@ -18,7 +18,8 @@ enum class CurrentState : uint8_t {
     calib_close = 4,
     open = 5,
     close = 6,
-    step_correction = 7
+    step_correction = 7,
+    stop_door
 };
 
 struct SmState {
@@ -34,7 +35,7 @@ class StateMachine final {
 public:
     StateMachine();
     void run_sm();
-    void next_state(CurrentState s, const std::string& st_text);
+    void next_state(CurrentState st, const std::string& st_text);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
     CurrentState check_st() const;
     [[nodiscard]] bool check_calib_status() const;
@@ -42,6 +43,9 @@ public:
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
     void reset_position();
+    void change_door_moving_status(bool is_door_moving);
+    bool get_door_moving_status() const;
+    void handle_door();
 private:
     StepMotor stepMotor;
     LimitSwitch left_limit;
@@ -49,8 +53,9 @@ private:
     int position;
     int lowest_position;
     int highest_position;
-    bool calib_status;
+    bool calibrated;
     bool next_direction_door; // if door should be closing or opening
+    bool door_moving;
 
     void initial_st();
     void idle_st();
@@ -66,6 +71,18 @@ private:
     static void set_sm_state(SmState& sms, uint8_t value);
     static bool validateCurrentState(const SmState& sms);
     void writeCurrentState(uint8_t value);
+
+    using Handler = void (StateMachine::*)();
+    static constexpr Handler handlers[] = {
+        &StateMachine::initial_st,
+        &StateMachine::idle_st,
+        &StateMachine::start_calib_st,
+        &StateMachine::calib_open_st,
+        &StateMachine::calib_close_st,
+        &StateMachine::open_st,
+        &StateMachine::close_st,
+        &StateMachine::correction_st
+    };
 
     CurrentState current_state{CurrentState::initial};
     bool last_ms_valid_{false};
