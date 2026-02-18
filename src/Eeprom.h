@@ -25,8 +25,8 @@ public:
 
     static constexpr std::array<uint16_t, 6> STATE_ADDRESSES {
         CALIB_ADDR,
-        NEXT_DIR_ADDR,
         DOOR_MOV_ADDR,
+        NEXT_DIR_ADDR,
         POS_ADDR,
         LOWEST_POS_ADDR,
         HIGHEST_POS_ADDR

@@ -37,10 +37,10 @@ public:
     void run_sm();
     void next_state(CurrentState st);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
-    //[[nodiscard]] CurrentState check_st() const;
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
     void handle_door();
+
 private:
     StepMotor stepMotor;
     Eeprom eeprom;

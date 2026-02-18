@@ -31,15 +31,15 @@ void StateMachine::next_state(const CurrentState st) {
 
     if (st != CurrentState::idle) {
         door_moving = true;
-        eeprom.write_state16(Eeprom::DOOR_MOV_ADDR, 1);
+        eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 1);
     }
     else {
         door_moving = false;
-        eeprom.write_state16(Eeprom::DOOR_MOV_ADDR, 0);
+        eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);
     }
     if (st == CurrentState::init_calib) {
         calibrated = false;
-        eeprom.write_state16(Eeprom::CALIB_ADDR, 0);
+        eeprom.write_state(Eeprom::CALIB_ADDR, 0);
     }
 
     current_state = st;
@@ -103,11 +103,11 @@ void StateMachine::step_correction_st() {
     if (position >= lowest_position + 2) {
         next_direction = true;
         calibrated = true;
-        eeprom.write_state(Eeprom::POS_ADDR, position);
-        eeprom.write_state(Eeprom::LOWEST_POS_ADDR, lowest_position);
-        eeprom.write_state(Eeprom::HIGHEST_POS_ADDR, highest_position);
-        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 1);
-        eeprom.write_state16(Eeprom::CALIB_ADDR, 1);
+        eeprom.write_state16(Eeprom::POS_ADDR, position);
+        eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_position);
+        eeprom.write_state16(Eeprom::HIGHEST_POS_ADDR, highest_position);
+        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, 1);
+        eeprom.write_state(Eeprom::CALIB_ADDR, 1);
         next_state(CurrentState::idle);
     }
     else {
@@ -121,8 +121,8 @@ void StateMachine::open_door_st() {
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit || position >= highest_position - 1) {
         next_direction = false;
-        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 0);
-        eeprom.write_state(Eeprom::POS_ADDR, position);
+        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, 0);
+        eeprom.write_state16(Eeprom::POS_ADDR, position);
         next_state(CurrentState::idle);
     }
     else {
@@ -136,8 +136,8 @@ void StateMachine::close_door_st() {
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit || position <= lowest_position + 2) {
         next_direction = true;
-        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 1);
-        eeprom.write_state(Eeprom::POS_ADDR, position);
+        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, 1);
+        eeprom.write_state16(Eeprom::POS_ADDR, position);
         next_state(CurrentState::idle);
     }
     else {
@@ -145,10 +145,6 @@ void StateMachine::close_door_st() {
             stepMotor.step(-1);
     }
 }
-
-/*CurrentState StateMachine::check_st() const {
-    return current_state;
-}*/
 
 void StateMachine::update_position(const int new_position) {
     position = new_position;
@@ -168,6 +164,8 @@ void StateMachine::handle_door() {
         }
         else {
             next_direction = !next_direction;
+            eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
+            eeprom.write_state16(Eeprom::POS_ADDR, position);
             next_state(CurrentState::idle);
         }
     }

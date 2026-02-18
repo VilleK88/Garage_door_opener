@@ -1,8 +1,7 @@
 #include "Eeprom.h"
-
+#include <iostream>
 #include <cstring>
 #include <cstdio>
-
 #include "hardware/gpio.h"
 
 void Eeprom::init_eeprom() {
@@ -127,6 +126,7 @@ void Eeprom::init_i2c() const {
 
 void Eeprom::init_memory() const {
     if (!valid_used_addresses()) {
+        std::cout << "Erase and init addresses\n";
         erase_used_addresses();
         init_addresses();
     }
@@ -136,11 +136,11 @@ bool Eeprom::valid_used_addresses() const {
     int index = 0;
     for (const auto addr : STATE_ADDRESSES) {
         if (index < 3) {
-            if (!validate_state16(addr))
+            if (!validate_state(addr))
                 return false;
         }
         else {
-            if (!validate_state(addr))
+            if (!validate_state16(addr))
                 return false;
         }
         index++;
@@ -166,7 +166,7 @@ void Eeprom::erase_used_addresses() const {
 
 void Eeprom::init_addresses() const {
     int index = 0;
-    for (auto addr : STATE_ADDRESSES) {
+    for (const auto addr : STATE_ADDRESSES) {
         if (index < 3)
             write_state(addr, 0);
         else
