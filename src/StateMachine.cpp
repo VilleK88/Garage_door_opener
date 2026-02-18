@@ -29,12 +29,18 @@ void StateMachine::run_sm() {
 void StateMachine::next_state(const CurrentState st) {
     std::cout << get_st_string(st) << "\n";
 
-    if (st != CurrentState::initial && st != CurrentState::idle)
+    if (st != CurrentState::idle) {
         door_moving = true;
-    else
+        eeprom.write_state16(Eeprom::DOOR_MOV_ADDR, 1);
+    }
+    else {
         door_moving = false;
-    if (st == CurrentState::start_calib)
+        eeprom.write_state16(Eeprom::DOOR_MOV_ADDR, 0);
+    }
+    if (st == CurrentState::init_calib) {
         calibrated = false;
+        eeprom.write_state16(Eeprom::CALIB_ADDR, 0);
+    }
 
     current_state = st;
     last_ms_valid_ = false;
@@ -48,7 +54,7 @@ void StateMachine::idle_st() {
 
 }
 
-void StateMachine::start_calib_st() {
+void StateMachine::init_calib_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
@@ -84,7 +90,6 @@ void StateMachine::calib_close_door_st() {
         std::cout << "Calibration completed.\n";
         std::cout << "Highest position: " << highest_position << "\n";
         std::cout << "Lowest position: " << lowest_position << "\n";
-        next_direction = true;
         next_state(CurrentState::step_correction);
     }
     else {
@@ -94,11 +99,30 @@ void StateMachine::calib_close_door_st() {
 
 }
 
+void StateMachine::step_correction_st() {
+    if (position >= lowest_position + 2) {
+        next_direction = true;
+        calibrated = true;
+        eeprom.write_state(Eeprom::POS_ADDR, position);
+        eeprom.write_state(Eeprom::LOWEST_POS_ADDR, lowest_position);
+        eeprom.write_state(Eeprom::HIGHEST_POS_ADDR, highest_position);
+        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 1);
+        eeprom.write_state16(Eeprom::CALIB_ADDR, 1);
+        next_state(CurrentState::idle);
+    }
+    else {
+        if (every_ms(1))
+            stepMotor.step(1);
+    }
+}
+
 void StateMachine::open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit || position >= highest_position - 1) {
         next_direction = false;
+        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 0);
+        eeprom.write_state(Eeprom::POS_ADDR, position);
         next_state(CurrentState::idle);
     }
     else {
@@ -112,6 +136,8 @@ void StateMachine::close_door_st() {
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit || position <= lowest_position + 2) {
         next_direction = true;
+        eeprom.write_state16(Eeprom::NEXT_DIR_ADDR, 1);
+        eeprom.write_state(Eeprom::POS_ADDR, position);
         next_state(CurrentState::idle);
     }
     else {
@@ -120,20 +146,9 @@ void StateMachine::close_door_st() {
     }
 }
 
-void StateMachine::correction_st() {
-    if (position >= lowest_position + 2) {
-        calibrated = true;
-        next_state(CurrentState::idle);
-    }
-    else {
-        if (every_ms(1))
-            stepMotor.step(1);
-    }
-}
-
-CurrentState StateMachine::check_st() const {
+/*CurrentState StateMachine::check_st() const {
     return current_state;
-}
+}*/
 
 void StateMachine::update_position(const int new_position) {
     position = new_position;
@@ -199,16 +214,15 @@ int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr) const {
 
 std::string StateMachine::get_st_string(CurrentState st) {
     switch (st) {
-        case CurrentState::initial: return "Initial state";
         case CurrentState::idle: return "Idle state";
-        case CurrentState::start_calib: return "Calibration state";
+        case CurrentState::init_calib: return "Initialize calibration state";
         case CurrentState::calib_open_door: return "Calibration open door state";
         case CurrentState::calib_close_door: return "Calibration close door state";
+        case CurrentState::step_correction: return "Step correction state";
         case CurrentState::open_door: return "Open door state";
         case CurrentState::close_door: return "Close door state";
-        case CurrentState::step_correction: return "Step correction state";
         case CurrentState::stop_door: return "Stop door state";
-        default: return "Initial state";
+        default: return "Idle state";
     }
 }
 

@@ -27,7 +27,7 @@ int main() {
 
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_CALIB && event.data == 1) {
-                sm.next_state(CurrentState::start_calib);
+                sm.next_state(CurrentState::init_calib);
             }
             if (event.type == EV_SW1 && event.data == 1) {
                 std::cout << "Middle button pressed\n";

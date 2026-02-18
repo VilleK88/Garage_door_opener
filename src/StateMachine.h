@@ -12,15 +12,14 @@
 #include "LimitSwitch.h"
 
 enum class CurrentState : uint8_t {
-    initial = 0,
-    idle = 1,
-    start_calib = 2,
-    calib_open_door = 3,
-    calib_close_door = 4,
+    idle = 0,
+    init_calib = 1,
+    calib_open_door = 2,
+    calib_close_door = 3,
+    step_correction = 4,
     open_door = 5,
     close_door = 6,
-    step_correction = 7,
-    stop_door
+    stop_door = 7
 };
 
 struct SmState {
@@ -38,7 +37,7 @@ public:
     void run_sm();
     void next_state(CurrentState st);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
-    [[nodiscard]] CurrentState check_st() const;
+    //[[nodiscard]] CurrentState check_st() const;
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
     void handle_door();
@@ -56,12 +55,12 @@ private:
 
     void initial_st();
     void idle_st();
-    void start_calib_st();
+    void init_calib_st();
     void calib_open_door_st();
     void calib_close_door_st();
+    void step_correction_st();
     void open_door_st();
     void close_door_st();
-    void correction_st();
 
     void init_states();
     [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr) const;
@@ -73,17 +72,17 @@ private:
 
     using Handler = void (StateMachine::*)();
     static constexpr Handler handlers[] = {
-        &StateMachine::initial_st,
         &StateMachine::idle_st,
-        &StateMachine::start_calib_st,
+        &StateMachine::init_calib_st,
         &StateMachine::calib_open_door_st,
         &StateMachine::calib_close_door_st,
+        &StateMachine::step_correction_st,
         &StateMachine::open_door_st,
-        &StateMachine::close_door_st,
-        &StateMachine::correction_st
+        &StateMachine::close_door_st
     };
 
-    CurrentState current_state{CurrentState::initial};
+    CurrentState current_state{CurrentState::idle};
+
     bool last_ms_valid_{false};
     uint32_t last_ms_{0};
 };
