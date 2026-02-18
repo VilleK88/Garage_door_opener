@@ -7,6 +7,7 @@
 #include <array>
 #include <optional>
 
+#include "Eeprom.h"
 #include "StepMotor.h"
 #include "LimitSwitch.h"
 
@@ -14,10 +15,10 @@ enum class CurrentState : uint8_t {
     initial = 0,
     idle = 1,
     start_calib = 2,
-    calib_open = 3,
-    calib_close = 4,
-    open = 5,
-    close = 6,
+    calib_open_door = 3,
+    calib_close_door = 4,
+    open_door = 5,
+    close_door = 6,
     step_correction = 7,
     stop_door
 };
@@ -35,53 +36,50 @@ class StateMachine final {
 public:
     StateMachine();
     void run_sm();
-    void next_state(CurrentState st, const std::string& st_text);
+    void next_state(CurrentState st);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
     [[nodiscard]] CurrentState check_st() const;
-    //[[nodiscard]] bool check_calib_status() const;
-    //[[nodiscard]] bool get_door_status() const;
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
-    //void reset_position();
-    //void change_door_moving_status(bool is_door_moving);
-    //bool get_door_moving_status() const;
-    void start_calibration();
     void handle_door();
 private:
     StepMotor stepMotor;
+    Eeprom eeprom;
     LimitSwitch left_limit;
     LimitSwitch right_limit;
+    bool calibrated;
+    bool door_moving;
+    bool next_direction; // if door should be closing or opening
     int position;
     int lowest_position;
     int highest_position;
-    bool calibrated;
-    bool next_direction; // if door should be closing or opening
-    bool door_moving;
 
     void initial_st();
     void idle_st();
-    void calib_st();
-    void calib_open_st();
-    void calib_close_st();
-    void open_st();
-    void close_st();
+    void start_calib_st();
+    void calib_open_door_st();
+    void calib_close_door_st();
+    void open_door_st();
+    void close_door_st();
     void correction_st();
 
-    bool every_ms(uint32_t interval_ms);
+    void init_states();
+    [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr) const;
+    [[nodiscard]] int init_st16(Eeprom::GenSt16 gst, uint16_t addr) const;
 
-    //static void set_sm_state(SmState& sms, uint8_t value);
-    //static bool validateCurrentState(const SmState& sms);
-    //void writeCurrentState(uint8_t value);
+    std::string get_st_string(CurrentState st);
+
+    bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();
     static constexpr Handler handlers[] = {
         &StateMachine::initial_st,
         &StateMachine::idle_st,
-        &StateMachine::calib_st,
-        &StateMachine::calib_open_st,
-        &StateMachine::calib_close_st,
-        &StateMachine::open_st,
-        &StateMachine::close_st,
+        &StateMachine::start_calib_st,
+        &StateMachine::calib_open_door_st,
+        &StateMachine::calib_close_door_st,
+        &StateMachine::open_door_st,
+        &StateMachine::close_door_st,
         &StateMachine::correction_st
     };
 

@@ -1,14 +1,19 @@
 #include "StateMachine.h"
 #include "StepMotor.h"
+#include <iostream>
+#include <array>
 #include "pico/time.h"
+#include "Eeprom.h"
 
 StateMachine::StateMachine()
-    : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT),
-        right_limit(LIM_PIN_RIGHT), position(0), lowest_position(0),
-        highest_position(0), calibrated(false), next_direction(false),
-        door_moving(false), current_state(CurrentState::initial)
+    : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT), right_limit(LIM_PIN_RIGHT),
+        calibrated(false), door_moving(false), next_direction(false),
+        position(0), lowest_position(0), highest_position(0)
 {
+    std::cout << "Boot\n";
     stepMotor.init_coil_pins();
+    eeprom.init_eeprom();
+    init_states();
     left_limit.init();
     right_limit.init();
 }
@@ -21,13 +26,15 @@ void StateMachine::run_sm() {
         (this->*handlers[states])();
 }
 
-void StateMachine::next_state(const CurrentState st, const std::string& st_text) {
-    std::cout << st_text << "\n";
+void StateMachine::next_state(const CurrentState st) {
+    std::cout << get_st_string(st) << "\n";
 
     if (st != CurrentState::initial && st != CurrentState::idle)
         door_moving = true;
     else
         door_moving = false;
+    if (st == CurrentState::start_calib)
+        calibrated = false;
 
     current_state = st;
     last_ms_valid_ = false;
@@ -41,13 +48,12 @@ void StateMachine::idle_st() {
 
 }
 
-void StateMachine::calib_st() {
+void StateMachine::start_calib_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
         position = 0;
-        std::cout << "Change to open state.\n";
-        next_state(CurrentState::calib_open, "Calibration open door state");
+        next_state(CurrentState::calib_open_door);
     }
     else {
         if (every_ms(1))
@@ -55,12 +61,12 @@ void StateMachine::calib_st() {
     }
 }
 
-void StateMachine::calib_open_st() {
+void StateMachine::calib_open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit) {
         highest_position = position;
-        next_state(CurrentState::calib_close, "Calibration close door state");
+        next_state(CurrentState::calib_close_door);
     }
     else {
         if (every_ms(1))
@@ -68,7 +74,7 @@ void StateMachine::calib_open_st() {
     }
 }
 
-void StateMachine::calib_close_st() {
+void StateMachine::calib_close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
@@ -79,7 +85,7 @@ void StateMachine::calib_close_st() {
         std::cout << "Highest position: " << highest_position << "\n";
         std::cout << "Lowest position: " << lowest_position << "\n";
         next_direction = true;
-        next_state(CurrentState::step_correction, "Step correction state");
+        next_state(CurrentState::step_correction);
     }
     else {
         if (every_ms(1))
@@ -88,12 +94,12 @@ void StateMachine::calib_close_st() {
 
 }
 
-void StateMachine::open_st() {
+void StateMachine::open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit || position >= highest_position - 1) {
         next_direction = false;
-        next_state(CurrentState::idle, "Idle state");
+        next_state(CurrentState::idle);
     }
     else {
         if (every_ms(1))
@@ -101,12 +107,12 @@ void StateMachine::open_st() {
     }
 }
 
-void StateMachine::close_st() {
+void StateMachine::close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit || position <= lowest_position + 2) {
         next_direction = true;
-        next_state(CurrentState::idle, "Idle state");
+        next_state(CurrentState::idle);
     }
     else {
         if (every_ms(1))
@@ -117,7 +123,7 @@ void StateMachine::close_st() {
 void StateMachine::correction_st() {
     if (position >= lowest_position + 2) {
         calibrated = true;
-        next_state(CurrentState::idle, "Idle state");
+        next_state(CurrentState::idle);
     }
     else {
         if (every_ms(1))
@@ -129,53 +135,80 @@ CurrentState StateMachine::check_st() const {
     return current_state;
 }
 
-/*bool StateMachine::check_calib_status() const {
-    return calibrated;
-}*/
-
-// Should door be closing or opening
-/*bool StateMachine::get_door_status() const {
-    return next_direction_door;
-}*/
-
 void StateMachine::update_position(const int new_position) {
     position = new_position;
-    std::cout << "Position: " << position << "\n";
 }
 
 int StateMachine::get_position() const {
     return position;
 }
 
-/*void StateMachine::reset_position() {
-    position = 0;
-}*/
-
-/*void StateMachine::change_door_moving_status(bool is_door_moving) {
-    door_moving = is_door_moving;
-}*/
-
-/*bool StateMachine::get_door_moving_status() const {
-    return door_moving;
-}*/
-
-void StateMachine::start_calibration() {
-    calibrated = false;
-    next_state(CurrentState::start_calib, "Calibration state");
-}
-
 void StateMachine::handle_door() {
     if (calibrated) {
         if (!door_moving) {
             if (!next_direction)
-                next_state(CurrentState::close, "Close door state");
+                next_state(CurrentState::close_door);
             else
-                next_state(CurrentState::open, "Open door state");
+                next_state(CurrentState::open_door);
         }
         else {
             next_direction = !next_direction;
-            next_state(CurrentState::idle, "Idle state");
+            next_state(CurrentState::idle);
         }
+    }
+}
+
+void StateMachine::init_states() {
+    const std::array bool_states = {&calibrated, &door_moving, &next_direction};
+    const std::array int_states = {&position, &lowest_position, &highest_position};
+
+    int index = 0;
+    for (auto& addr : Eeprom::STATE_ADDRESSES) {
+        if (index < 3) {
+            if (eeprom.validate_state(addr)) {
+                Eeprom::GenSt gst;
+                const int num = init_st(gst, addr);
+                *bool_states[index] = num != 0;
+            }
+            else
+                std::cout << "State INVALID at addr: " << addr << "\n";
+        }
+        else if (calibrated && !door_moving) {
+            if (eeprom.validate_state16(addr)) {
+                Eeprom::GenSt16 gst;
+                *int_states[index - 3] = init_st16(gst, addr);
+            }
+            else
+                std::cout << "State16 INVALID at addr: " << addr << "\n";
+        }
+        index++;
+    }
+}
+
+int StateMachine::init_st(Eeprom::GenSt gst, const uint16_t addr) const {
+    eeprom.read_state(addr, &gst.state, &gst.not_state);
+    std::cout << "State downloaded: " << static_cast<int>(gst.state) << "\n";
+    return gst.state;
+}
+
+int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr) const {
+    eeprom.read_state16(addr, &gst.state, &gst.not_state);
+    std::cout << "State downloaded: " << static_cast<int>(gst.state) << "\n";
+    return gst.state;
+}
+
+std::string StateMachine::get_st_string(CurrentState st) {
+    switch (st) {
+        case CurrentState::initial: return "Initial state";
+        case CurrentState::idle: return "Idle state";
+        case CurrentState::start_calib: return "Calibration state";
+        case CurrentState::calib_open_door: return "Calibration open door state";
+        case CurrentState::calib_close_door: return "Calibration close door state";
+        case CurrentState::open_door: return "Open door state";
+        case CurrentState::close_door: return "Close door state";
+        case CurrentState::step_correction: return "Step correction state";
+        case CurrentState::stop_door: return "Stop door state";
+        default: return "Initial state";
     }
 }
 

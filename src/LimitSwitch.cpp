@@ -14,7 +14,7 @@ void LimitSwitch::detect_hit(bool &hit, const std::string& text) const {
     else if (!hit) {
         if (is_pressed_debounced()) {
             hit = true;
-            std::cout << text << " hit registered.\n";
+            std::cout << text << " hit registered\n";
         }
     }
 }
