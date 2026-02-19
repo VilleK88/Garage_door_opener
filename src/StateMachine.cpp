@@ -5,8 +5,9 @@
 #include "pico/time.h"
 #include "Eeprom.h"
 
-StateMachine::StateMachine()
-    : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT), right_limit(LIM_PIN_RIGHT)
+StateMachine::StateMachine(LedController& newLedContr)
+    : stepMotor(coil_pins), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
+        right_limit(LIM_PIN_RIGHT)
 {
     std::cout << "Boot\n";
     stepMotor.init_coil_pins();
@@ -28,35 +29,24 @@ void StateMachine::next_state(const CurrentState st) {
     std::cout << get_st_string(st) << "\n";
 
     if (st == CurrentState::idle) {
-        current_state = st;
         last_ms_valid_ = false;
         door_moving = false;
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
     }
-    else if (st == CurrentState::open_door || st == CurrentState::close_door) {
-
-    }
-
-    if (st != CurrentState::idle) {
+    else {
         door_moving = true;
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
         last_encoder_change_ms = to_ms_since_boot(get_absolute_time());
     }
-    else {
-        current_state = st;
-        last_ms_valid_ = false;
-        door_moving = false;
-        eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
-        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
-        eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
-    }
+
     if (st == CurrentState::init_calib) {
         calibrated = false;
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
     }
 
+    set_led_st(st);
     current_state = st;
     last_ms_valid_ = false;
 }
@@ -117,6 +107,7 @@ void StateMachine::step_correction_st() {
     if (motor_step_pos >= lowest_pos + 500) {
         next_direction = true;
         calibrated = true;
+        error = false;
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
         eeprom.write_state16(Eeprom::HIGHEST_POS_ADDR, highest_pos);
@@ -174,6 +165,7 @@ void StateMachine::update_position(const int new_position) {
 void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
+        handle_error();
         std::cout << "Fault state\n";
         std::cout << "Recalibration required.\n";
         eeprom.write_state(Eeprom::CALIB_ADDR, 0);
@@ -242,9 +234,10 @@ void StateMachine::init_states() {
         }
         std::cout << "Persistent states restored\n";
     }
-    else
+    else {
+        handle_error();
         std::cout << "Power loss during motor operation resulted in an error state\n";
-
+    }
 }
 
 int StateMachine::init_st(Eeprom::GenSt gst, const uint16_t addr, const std::string& str_st) const {
@@ -269,6 +262,30 @@ std::string StateMachine::get_st_string(const CurrentState st) {
         case CurrentState::open_door: return "Open door state";
         case CurrentState::close_door: return "Close door state";
         default: return "Idle state";
+    }
+}
+
+void StateMachine::handle_error() {
+    error = true;
+    ledContr.set_mode(LedMode::Error);
+}
+
+void StateMachine::set_led_st(const CurrentState st) {
+    switch (st) {
+        case CurrentState::idle:
+            ledContr.set_mode(error ? LedMode::Error : LedMode::Idle);
+            break;
+        case CurrentState::init_calib:
+        case CurrentState::calib_open_door:
+        case CurrentState::calib_close_door:
+        case CurrentState::step_correction:
+            ledContr.set_mode(LedMode::Calib);
+            break;
+        case CurrentState::open_door:
+        case CurrentState::close_door:
+            ledContr.set_mode(LedMode::Moving);
+            break;
+
     }
 }
 

@@ -33,6 +33,8 @@ add_executable(${PROJECT_NAME}
         src/LimitSwitch.h
         src/Eeprom.cpp
         src/Eeprom.h
+        src/LedController.cpp
+        src/LedController.h
 )
 
 # Create map/bin/hex/uf2 files

@@ -10,6 +10,7 @@
 #include "Eeprom.h"
 #include "StepMotor.h"
 #include "LimitSwitch.h"
+#include "LedController.h"
 
 enum class CurrentState : uint8_t {
     idle = 0,
@@ -32,7 +33,7 @@ struct MainSmState {
 
 class StateMachine final {
 public:
-    StateMachine();
+    explicit StateMachine(LedController& newLedContr);
     void run_sm();
     void next_state(CurrentState st);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
@@ -43,11 +44,13 @@ public:
 private:
     StepMotor stepMotor;
     Eeprom eeprom;
+    LedController& ledContr;
     LimitSwitch left_limit;
     LimitSwitch right_limit;
     bool door_moving{false};
     bool calibrated{false};
     bool next_direction{false}; // if door should be closing or opening
+    bool error{false};
 
     int motor_step_pos{0};
     int lowest_pos{0};
@@ -73,6 +76,8 @@ private:
     std::string get_st_string(CurrentState st);
 
     void check_if_stuck();
+    void handle_error();
+    void set_led_st(CurrentState st);
     bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();
@@ -83,7 +88,7 @@ private:
         &StateMachine::calib_close_door_st,
         &StateMachine::step_correction_st,
         &StateMachine::open_door_st,
-        &StateMachine::close_door_st
+        &StateMachine::close_door_st,
     };
 
     CurrentState current_state{CurrentState::idle};

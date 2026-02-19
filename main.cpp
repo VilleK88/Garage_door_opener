@@ -8,6 +8,7 @@
 #include "pico/util/queue.h"
 #include "main.h"
 #include "src/StateMachine.h"
+#include "src/LedController.h"
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
@@ -17,24 +18,31 @@ int main() {
     stdio_init_all();
     // Initialize buttons
     init_buttons();
+    // Initialize leds
+    LedController ledContr;
     // Initialize Rotary Encoder
     init_encoder();
     // Initialize state machine
-    StateMachine sm;
+    StateMachine sm(ledContr);
 
     event_t event;
     while (true) {
 
         while (queue_try_remove(&events, &event)) {
-            if (event.type == EV_CALIB && event.data == 1)
+            if (event.type == EV_CALIB && event.data == 1) {
+                ledContr.press_button(BtnEv::CalibCombo);
                 sm.next_state(CurrentState::init_calib);
-            if (event.type == EV_SW1 && event.data == 1)
+            }
+            if (event.type == EV_SW1 && event.data == 1) {
+                ledContr.press_button(BtnEv::SW1_EV);
                 sm.handle_door();
+            }
             if (event.type == EVENT_ENCODER)
                 sm.update_position(sm.get_position() + event.data);
         }
 
         sm.run_sm();
+        ledContr.update(to_ms_since_boot(get_absolute_time()));
     }
 }
 

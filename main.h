@@ -14,11 +14,6 @@
 #define BUTTONS_SIZE 3 // how many buttons
 static constexpr std::array<uint, 3> buttons = {SW0, SW1, SW2};
 
-#define LED1 22 // right LED
-#define LED2 21 // middle LED
-#define LED3 20 // left LED
-#define LEDS_SIZE 3 // how many LEDs
-
 #define BR_RATE 50 // step size for brightness changes
 #define MAX_BR (TOP + 1) // max brightness
 #define BR_MID (MAX_BR / 2) // 50% brightness level
