@@ -26,16 +26,12 @@ int main() {
     while (true) {
 
         while (queue_try_remove(&events, &event)) {
-            if (event.type == EV_CALIB && event.data == 1) {
+            if (event.type == EV_CALIB && event.data == 1)
                 sm.next_state(CurrentState::init_calib);
-            }
-            if (event.type == EV_SW1 && event.data == 1) {
-                std::cout << "Middle button pressed\n";
+            if (event.type == EV_SW1 && event.data == 1)
                 sm.handle_door();
-            }
-            if (event.type == EVENT_ENCODER) {
+            if (event.type == EVENT_ENCODER)
                 sm.update_position(sm.get_position() + event.data);
-            }
         }
 
         sm.run_sm();

@@ -16,18 +16,18 @@ public:
     static constexpr int MAG_LOGS = 32;
     static constexpr int WB_SLEEP_MS = 5;
 
-    static constexpr uint16_t CALIB_ADDR = 32766;
-    static constexpr uint16_t DOOR_MOV_ADDR = 32764;
+    static constexpr uint16_t DOOR_MOV_ADDR = 32766;
+    static constexpr uint16_t CALIB_ADDR = 32764;
     static constexpr uint16_t NEXT_DIR_ADDR = 32762;
-    static constexpr uint16_t POS_ADDR = 32758;
+    static constexpr uint16_t STEP_POS_ADDR = 32758;
     static constexpr uint16_t LOWEST_POS_ADDR = 32754;
     static constexpr uint16_t HIGHEST_POS_ADDR = 32750;
 
     static constexpr std::array<uint16_t, 6> STATE_ADDRESSES {
-        CALIB_ADDR,
         DOOR_MOV_ADDR,
+        CALIB_ADDR,
         NEXT_DIR_ADDR,
-        POS_ADDR,
+        STEP_POS_ADDR,
         LOWEST_POS_ADDR,
         HIGHEST_POS_ADDR
     };

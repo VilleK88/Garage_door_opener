@@ -25,5 +25,4 @@ private:
     std::array<uint, 4> coil_pins;
 };
 
-
 #endif

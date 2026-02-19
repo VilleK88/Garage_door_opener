@@ -19,7 +19,6 @@ enum class CurrentState : uint8_t {
     step_correction = 4,
     open_door = 5,
     close_door = 6,
-    stop_door = 7
 };
 
 struct SmState {
@@ -46,14 +45,14 @@ private:
     Eeprom eeprom;
     LimitSwitch left_limit;
     LimitSwitch right_limit;
-    bool calibrated;
     bool door_moving;
+    bool calibrated;
     bool next_direction; // if door should be closing or opening
-    int position;
-    int lowest_position;
-    int highest_position;
+    int motor_step_pos;
+    int lowest_pos;
+    int highest_pos;
+    int encoder_pos;
 
-    void initial_st();
     void idle_st();
     void init_calib_st();
     void calib_open_door_st();
@@ -63,8 +62,8 @@ private:
     void close_door_st();
 
     void init_states();
-    [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr) const;
-    [[nodiscard]] int init_st16(Eeprom::GenSt16 gst, uint16_t addr) const;
+    [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr, const std::string& str_st) const;
+    [[nodiscard]] int init_st16(Eeprom::GenSt16 gst, uint16_t addr, const std::string& str_st) const;
 
     std::string get_st_string(CurrentState st);
 
