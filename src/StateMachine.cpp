@@ -6,9 +6,7 @@
 #include "Eeprom.h"
 
 StateMachine::StateMachine()
-    : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT), right_limit(LIM_PIN_RIGHT),
-        door_moving(false), calibrated(false), next_direction(false),
-        encoder_pos(0), lowest_pos(0), highest_pos(0), motor_step_pos(0)
+    : stepMotor(coil_pins), left_limit(LIM_PIN_LEFT), right_limit(LIM_PIN_RIGHT)
 {
     std::cout << "Boot\n";
     stepMotor.init_coil_pins();
@@ -44,6 +42,7 @@ void StateMachine::next_state(const CurrentState st) {
     if (st != CurrentState::idle) {
         door_moving = true;
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
+        last_encoder_change_ms = to_ms_since_boot(get_absolute_time());
     }
     else {
         current_state = st;
@@ -76,6 +75,7 @@ void StateMachine::init_calib_st() {
     else {
         if (every_ms(1))
             stepMotor.step(-1);
+        check_if_stuck();
     }
 }
 
@@ -83,16 +83,13 @@ void StateMachine::calib_open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     if (right_hit) {
-        //highest_position = position;
         highest_pos = motor_step_pos;
         next_state(CurrentState::calib_close_door);
     }
     else {
-        if (every_ms(1)) {
-            constexpr int direction = 1;
-            stepMotor.step(direction);
-            motor_step_pos += direction;
-        }
+        if (every_ms(1))
+            motor_step_pos += stepMotor.run_step_motor(1);
+        check_if_stuck();
     }
 }
 
@@ -100,7 +97,6 @@ void StateMachine::calib_close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     if (left_hit) {
-        //encoder_pos = 0;
         lowest_pos = motor_step_pos;
 
         std::cout << "Calibration completed.\n";
@@ -110,11 +106,9 @@ void StateMachine::calib_close_door_st() {
         next_state(CurrentState::step_correction);
     }
     else {
-        if (every_ms(1)) {
-            constexpr int direction = -1;
-            stepMotor.step(direction);
-            motor_step_pos += direction;
-        }
+        if (every_ms(1))
+            motor_step_pos += stepMotor.run_step_motor(-1);
+        check_if_stuck();
     }
 
 }
@@ -132,11 +126,9 @@ void StateMachine::step_correction_st() {
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1)) {
-            constexpr int direction = 1;
-            stepMotor.step(direction);
-            motor_step_pos += direction;
-        }
+        if (every_ms(1))
+            motor_step_pos += stepMotor.run_step_motor(1);
+        check_if_stuck();
     }
 }
 
@@ -149,11 +141,9 @@ void StateMachine::open_door_st() {
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1)) {
-            constexpr int direction = 1;
-            stepMotor.step(direction);
-            motor_step_pos += direction;
-        }
+        if (every_ms(1))
+            motor_step_pos += stepMotor.run_step_motor(1);
+        check_if_stuck();
     }
 }
 
@@ -168,17 +158,28 @@ void StateMachine::close_door_st() {
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1)) {
-            constexpr int direction = -1;
-            stepMotor.step(direction);
-            motor_step_pos += direction;
-        }
+        if (every_ms(1))
+            motor_step_pos += stepMotor.run_step_motor(-1);
+        check_if_stuck();
     }
 }
 
 void StateMachine::update_position(const int new_position) {
-    if (current_state != CurrentState::idle)
+    if (new_position != encoder_pos) {
         encoder_pos = new_position;
+        last_encoder_change_ms = to_ms_since_boot(get_absolute_time());
+    }
+}
+
+void StateMachine::check_if_stuck() {
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
+        std::cout << "Fault state\n";
+        std::cout << "Recalibration required.\n";
+        eeprom.write_state(Eeprom::CALIB_ADDR, 0);
+        eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);
+        next_state(CurrentState::idle);
+    }
 }
 
 int StateMachine::get_position() const {
@@ -258,7 +259,7 @@ int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr, const std:
     return gst.state;
 }
 
-std::string StateMachine::get_st_string(CurrentState st) {
+std::string StateMachine::get_st_string(const CurrentState st) {
     switch (st) {
         case CurrentState::idle: return "Idle state";
         case CurrentState::init_calib: return "Initialize calibration state";
@@ -271,8 +272,8 @@ std::string StateMachine::get_st_string(CurrentState st) {
     }
 }
 
-bool StateMachine::every_ms(uint32_t interval_ms) {
-    uint32_t now = to_ms_since_boot(get_absolute_time());
+bool StateMachine::every_ms(const uint32_t interval_ms) {
+    const uint32_t now = to_ms_since_boot(get_absolute_time());
     if (!last_ms_valid_) {
         last_ms_ = now;
         last_ms_valid_ = true;

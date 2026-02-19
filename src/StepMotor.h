@@ -20,7 +20,7 @@ public:
     explicit StepMotor(const std::array<uint, 4>& pins);
     void init_coil_pins() const;
     void step(int direction) const;
-    void run_step_motor(int count, int direction) const;
+    int run_step_motor(int direction) const;
 private:
     std::array<uint, 4> coil_pins;
 };

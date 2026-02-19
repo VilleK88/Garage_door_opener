@@ -45,13 +45,18 @@ private:
     Eeprom eeprom;
     LimitSwitch left_limit;
     LimitSwitch right_limit;
-    bool door_moving;
-    bool calibrated;
-    bool next_direction; // if door should be closing or opening
-    int motor_step_pos;
-    int lowest_pos;
-    int highest_pos;
-    int encoder_pos;
+    bool door_moving{false};
+    bool calibrated{false};
+    bool next_direction{false}; // if door should be closing or opening
+
+    int motor_step_pos{0};
+    int lowest_pos{0};
+    int highest_pos{0};
+
+    int encoder_pos{0};
+    int previous_encoder_pos{0};
+    uint32_t last_encoder_change_ms{0};
+    int fault_max_time_ms{1000};
 
     void idle_st();
     void init_calib_st();
@@ -67,6 +72,7 @@ private:
 
     std::string get_st_string(CurrentState st);
 
+    void check_if_stuck();
     bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();

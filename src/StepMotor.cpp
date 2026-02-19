@@ -34,9 +34,7 @@ void StepMotor::step(const int direction) const {
     }
 }
 
-void StepMotor::run_step_motor(const int count, const int direction) const {
-    const int size = count * (steps_per_rev / 8);
-    for (int i = 0; i < size; i++) {
-        step(direction);
-    }
+int StepMotor::run_step_motor(const int direction) const {
+    step(direction);
+    return direction;
 }

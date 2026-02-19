@@ -1,11 +1,9 @@
 #ifndef EEPROM_H
 #define EEPROM_H
 #pragma once
-
 #include <cstdint>
 #include <cstddef>
 #include <array>
-
 #include "hardware/i2c.h"
 #include "pico/time.h"
 
