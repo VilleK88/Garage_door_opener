@@ -242,13 +242,13 @@ void StateMachine::init_states() {
 
 int StateMachine::init_st(Eeprom::GenSt gst, const uint16_t addr, const std::string& str_st) const {
     eeprom.read_state(addr, &gst.state, &gst.not_state);
-    std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
+    //std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
     return gst.state;
 }
 
 int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr, const std::string& str_st) const {
     eeprom.read_state16(addr, &gst.state, &gst.not_state);
-    std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
+    //std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
     return gst.state;
 }
 

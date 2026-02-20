@@ -1,0 +1,20 @@
+
+Install docker.
+Create a folder "config".
+Copy mosquitto.conf to config folder
+Start mosquitto by running the following command in the parent folder of config.
+
+docker run -it --rm -p 1883:1883 -p 9001:9001 -v ./config:/mosquitto/config eclipse-mosquitto
+
+You can terminate the container by pressing ctrl-C
+
+Note on windows you have to give absolute path to the config-directory. 
+For example:
+
+docker run -it --rm -p 1883:1883 -p 9001:9001 -v C:\Users\keijo\Documents\config:/mosquitto/config eclipse-mosquito
+
+docker run -it --rm -p 1883:1883 -p 9001:9001 -v C:\Users\ville\Documents\GitHub\Garage_door_opener\config:/mosquitto/config eclipse-mosquitto
+
+
+You can also make a batch file:
+docker run -it --rm -p 1883:1883 -p 9001:9001 -v %cd%\config:/mosquitto/config eclipse-mosquitto

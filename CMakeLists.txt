@@ -35,6 +35,14 @@ add_executable(${PROJECT_NAME}
         src/Eeprom.h
         src/LedController.cpp
         src/LedController.h
+        src/MqttClient.cpp
+        src/MqttClient.h
+        lwipopts.h
+        config/wifi_config.h
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Create map/bin/hex/uf2 files
@@ -47,6 +55,10 @@ target_link_libraries(${PROJECT_NAME}
         hardware_gpio
         hardware_i2c
         hardware_adc
+        pico_util
+
+        pico_cyw43_arch_lwip_threadsafe_background
+        pico_lwip_mqtt
 )
 
 # Disable usb output, enable uart output

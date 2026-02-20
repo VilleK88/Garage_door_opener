@@ -26,12 +26,13 @@ static constexpr uint ENC_A = 14;
 static constexpr uint ENC_B = 15;
 
 // Type of event coming from the interrupt callback
-typedef enum { EV_SW0, EV_SW1, EV_SW2, EVENT_ENCODER, EV_CALIB } event_type;
+typedef enum { EV_SW0, EV_SW1, EV_SW2, EVENT_ENCODER, EV_CALIB, EV_MQTT_CMD } event_type;
 
 // Generic event passed from ISR to main loop through a queue
 typedef struct {
     event_type type; // EVENT_BUTTON
     int32_t data; // BUTTON: 1 = press, 0 = release;
+    char payload[128];
 } event_t;
 
 void gpio_callback(uint gpio, uint32_t event_mask);
