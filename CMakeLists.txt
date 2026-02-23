@@ -1,5 +1,5 @@
 # Set minimum required version of CMake
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.17)
 
 # Set board type because we are building for PicoW
 set(PICO_BOARD pico_w)
@@ -35,10 +35,12 @@ add_executable(${PROJECT_NAME}
         src/Eeprom.h
         src/LedController.cpp
         src/LedController.h
-        src/MqttClient.cpp
-        src/MqttClient.h
+        src/Wifi.cpp
+        src/Wifi.h
         lwipopts.h
         config/wifi_config.h
+        src/LoRaE5.cpp
+        src/LoRaE5.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -58,7 +60,6 @@ target_link_libraries(${PROJECT_NAME}
         pico_util
 
         pico_cyw43_arch_lwip_threadsafe_background
-        pico_lwip_mqtt
 )
 
 # Disable usb output, enable uart output

@@ -8,12 +8,14 @@
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "pico/cyw43_arch.h"
+#include "lwip/apps/Wifi.h"
 
 #include "main.h"
 #include "src/StateMachine.h"
 #include "src/LedController.h"
-#include "src/MqttClient.h"
+#include "src/Wifi.h"
 #include "config/wifi_config.h"
+#include "src/LoRaE5.h"
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
@@ -22,38 +24,14 @@ int main() {
     // Initialize chosen serial port
     stdio_init_all();
 
-
-    bool wifi_ok = false;
-
-    printf("Before cyw43_arch_init\n");
-    //int init_rc = cyw43_arch_init();
-    const int init_rc = cyw43_arch_init_with_country(CYW43_COUNTRY_FINLAND);
-    printf("After cyw43_arch_init\n");
-    printf("cyw43_arch_init rc=%d\n", init_rc);
-
-
-    if (init_rc) {
-        std::cout << "cyw43 init failed\n";
-    }
-    else {
-        std::cout << "cyw43 init completed\n";
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
-        sleep_ms(200);
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
-        cyw43_arch_enable_sta_mode();
-
-        const char* SSID = WIFI_SSID;
-        const char* PASS = WIFI_PASS;
-
-        if (cyw43_arch_wifi_connect_timeout_ms(SSID, PASS,
-            CYW43_AUTH_WPA2_AES_PSK, 30000)) {
-            std::cout << "Wifi connect failed\n";
-            }
-        else {
-            wifi_ok = true;
-            std::cout << "Wifi connection completed\n";
+    Wifi wifi;
+    if (wifi.connect_wifi()) {
+        wifi.init_udp(12345);
+        if (wifi.send_msg("10.161.6.23", 12345, "Hello from Pico")) {
+            std::cout << "Message send\n";
         }
     }
+
 
 
     // Initialize buttons
@@ -65,13 +43,17 @@ int main() {
     // Initialize state machine
     StateMachine sm(ledContr);
 
-    MqttClient mqtt;
+    /*MqttClient mqtt;
     if (wifi_ok)
-        mqtt.connect();
+        mqtt.connect();*/
+    /*LoRaE5 lora;
+    if (lora.check_comm())
+        lora.join_network();
+    lora.send_msg("Test");*/
+
 
     event_t event;
     while (true) {
-        mqtt.poll();
 
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_CALIB && event.data == 1) {
