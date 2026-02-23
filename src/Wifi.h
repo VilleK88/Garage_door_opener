@@ -1,9 +1,5 @@
 #ifndef MQTTCLIENT_H
 #define MQTTCLIENT_H
-
-#include <string>
-#include <cstdint>
-
 #include "pico/cyw43_arch.h"
 #include "lwip/apps/Wifi.h"
 #include "lwip/ip_addr.h"

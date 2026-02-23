@@ -1,20 +1,18 @@
 #include "Wifi.h"
 #include "config/wifi_config.h"
+#include "../main.h"
 
 #include <cstring>
 #include <cstdio>
 
-//#include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "lwip/apps/Wifi.h"
 #include "lwip/ip_addr.h"
 #include "lwip/tcp.h"
-#include "lwip/tcp.h"
-#include "lwip/ip_addr.h"
 #include "lwip/err.h"
 
-#include "../main.h"
 #include "lwip/sockets.h"
+
 extern queue_t events;
 
 static constexpr const char* TOPIC_STATUS = "garage/door/status";
@@ -109,7 +107,7 @@ bool Wifi::send_msg(const char* dst_ip, const uint16_t dst_port, const char* msg
 }
 
 void Wifi::udp_receive_cb(void* arg, udp_pcb*,
-        pbuf* p, const ip_addr_t* addr, u16_t port) {
+        pbuf* p, const ip_addr_t* addr, const u16_t port) {
     if (p) {
         char buffer[256]{};
 
