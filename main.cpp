@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-//#include <cstdio>
 
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
@@ -13,15 +12,10 @@
 #include "src/LedController.h"
 #include "src/Wifi.h"
 #include "config/wifi_config.h"
-#include "src/LoRaE5.h"
 #include "src/IPStack.h"
 #include "src/Mqttservice.h"
 
 extern "C" {
-//#include "lwip/sockets.h"
-//#include "lwip/netdb.h"
-//#include "lwip/ip4_addr.h"
-//#include "lwip/inet.h"
 #include "lwip/timeouts.h"
 }
 
@@ -56,15 +50,6 @@ int main() {
     // Initialize state machine
     StateMachine sm(ledContr);
 
-   /* MqttClient mqtt;
-    if (wifi_ok)
-        mqtt.connect();
-    LoRaE5 lora;
-    if (lora.check_comm())
-        lora.join_network();
-    lora.send_msg("Test");*/
-
-
     event_t event;
     while (true) {
         cyw43_arch_poll();
@@ -84,6 +69,25 @@ int main() {
 
             if (event.type == EV_MQTT_CMD) {
                 std::cout << "Main got MQTT payload: " << event.payload << "\n";
+            }
+
+            if (event.type == EV_MQTT_CMD) {
+                std::cout << "Main got MQTT payload: " << event.payload << "\n";
+
+                if (std::strcmp(event.payload, "STATUS") == 0) {
+                    mqtt.publish("garage/door/status", "OK", 0, true);
+                } else if (std::strcmp(event.payload, "TOGGLE") == 0) {
+                    // TODO: trigger_roller_relay_pulse(); tai sm.handle_door();
+                    mqtt.publish("garage/door/status", "TOGGLING", 0, true);
+                } else if (std::strcmp(event.payload, "OPEN") == 0) {
+                    // TODO: open_door();
+                    mqtt.publish("garage/door/status", "OPENING", 0, true);
+                } else if (std::strcmp(event.payload, "CLOSE") == 0) {
+                    // TODO: close_door();
+                    mqtt.publish("garage/door/status", "CLOSING", 0, true);
+                } else {
+                    mqtt.publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+                }
             }
         }
 

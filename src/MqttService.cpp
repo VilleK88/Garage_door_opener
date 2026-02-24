@@ -140,6 +140,21 @@ void MqttService::on_incoming_data(void* arg, const u8_t* data, u16_t len, u8_t 
 
 void MqttService::handle_command(const char* topic, const char* payload) {
     if (!topic || !payload) return;
+    if (std::strcmp(topic, TOPIC_CMD) != 0) return;
+
+    // Push command to main loop via event queue
+    event_t ev{};
+    ev.type = EV_MQTT_CMD;
+    ev.data = 1;
+
+    std::strncpy(ev.payload, payload, sizeof(ev.payload) - 1);
+    ev.payload[sizeof(ev.payload) - 1] = '\0';
+
+    // Optional: drop if queue is full (you can print/debug if needed)
+    queue_try_add(&events, &ev);
+
+
+    /*if (!topic || !payload) return;
 
     // Vain cmd-topic käsitellään komentona
     if (std::strcmp(topic, TOPIC_CMD) != 0) return;
@@ -178,5 +193,5 @@ void MqttService::handle_command(const char* topic, const char* payload) {
         return;
     }
 
-    publish(TOPIC_STAT, "UNKNOWN_CMD", 0, true);
+    publish(TOPIC_STAT, "UNKNOWN_CMD", 0, true);*/
 }

@@ -1,7 +1,6 @@
 #ifndef MQTTSERVICE_H
 #define MQTTSERVICE_H
 #pragma once
-#include <cstdint>
 #include <cstring>
 
 #include "lwip/apps/mqtt.h"
@@ -25,7 +24,6 @@ private:
 
     void handle_command(const char* topic, const char* payload);
 
-private:
     mqtt_client_t* client{nullptr};
     bool up{false};
 
