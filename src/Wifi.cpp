@@ -6,9 +6,9 @@
 #include <cstdio>
 
 #include "pico/cyw43_arch.h"
-#include "lwip/apps/Wifi.h"
-#include "lwip/ip_addr.h"
+#include "lwip/pbuf.h"
 #include "lwip/tcp.h"
+#include "lwip/ip_addr.h"
 #include "lwip/err.h"
 
 #include "lwip/sockets.h"
@@ -16,9 +16,6 @@
 extern queue_t events;
 
 static constexpr const char* TOPIC_STATUS = "garage/door/status";
-
-static constexpr const char* BROKER_IP_STR = MQTT_BROKER_IP;
-static constexpr uint16_t BROKER_PORT  = 1883;
 
 bool Wifi::connect_wifi() {
     const int init_rc = cyw43_arch_init_with_country(CYW43_COUNTRY_FINLAND);
@@ -31,22 +28,21 @@ bool Wifi::connect_wifi() {
         std::cout << "cyw43 init completed\n";
         cyw43_arch_enable_sta_mode();
 
-        const char* SSID = WIFI_SSID;
-        const char* PASS = WIFI_PASS;
+        auto SSID = WIFI_SSID;
+        auto PASS = WIFI_PASS;
 
         if (cyw43_arch_wifi_connect_timeout_ms(SSID, PASS,
-            CYW43_AUTH_WPA2_AES_PSK, 30000)) {
+            CYW43_AUTH_WPA2_AES_PSK, CONN_TIMEOUT_MS)) {
             std::cout << "Wifi connect failed\n";
             }
         else {
             connected = true;
-            std::cout << "Wifi connection completed\n";
+            std::cout << "Wifi connected\n";
             while (!netif_default || !netif_is_up(netif_default) ||
-       ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {
+                ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {
                 cyw43_arch_poll();
                 sleep_ms(100);
-       }
-
+                }
             printf("Got IP: %s\n", ipaddr_ntoa(netif_ip_addr4(netif_default)));
             return connected;
         }
@@ -54,7 +50,7 @@ bool Wifi::connect_wifi() {
     return connected;
 }
 
-bool Wifi::init_udp(uint16_t local_port) {
+/*bool Wifi::init_udp(const uint16_t local_port) {
     cyw43_arch_lwip_begin();
 
     pcb = udp_new();
@@ -78,7 +74,7 @@ bool Wifi::send_msg(const char* dst_ip, const uint16_t dst_port, const char* msg
     if (pcb && dst_ip && msg) {
         ip_addr_t dest_ip;
         if (ipaddr_aton(dst_ip, &dest_ip)) {
-            size_t len = strlen(msg);
+            const size_t len = strlen(msg);
 
             pbuf* p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
             if (p) {
@@ -118,4 +114,38 @@ void Wifi::udp_receive_cb(void* arg, udp_pcb*,
         std::printf("UDP RX | %s:%u | %s\n", ipaddr_ntoa(addr), port, buffer);
         pbuf_free(p);
     }
+}*/
+
+bool Wifi::tcp_connect(const char* server_ip, uint16_t server_port) {
+    if (connected && server_ip) {
+        ip_addr_t dest_ip{};
+        if (ipaddr_aton(server_ip, &dest_ip)) {
+            cyw43_arch_lwip_begin();
+
+            pcb = tcp_new_ip_type(IP_GET_TYPE(&dest_ip));
+            if (pcb) {
+                tcp_arg(pcb, this);
+                tcp_err(pcb, &on_tcp_err);
+                tcp_recv(pcb, &on_tcp_recv);
+                tcp_sent(pcb, &on_tcp_sent);
+
+                err_t err = ::tcp_connect(pcb, &dest_ip, server_port, &on_tcp_connected);
+
+                cyw43_arch_lwip_end();
+
+                if (err == ERR_OK) {
+                    std::printf("TCP connecting to %s:%u...\n", server_ip, server_port);
+                    return true;
+                }
+                std::printf("tcp_connect start failed err=%d\n", (int)err);
+            }
+            else
+                std::printf("tcp_new failed\n");
+        }
+        else
+            std::printf("Invalid server IP: %s\n", server_ip);
+    }
+    cyw43_arch_lwip_end();
+    close_connection();
+    return false;
 }

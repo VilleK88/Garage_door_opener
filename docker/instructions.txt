@@ -13,7 +13,9 @@ For example:
 
 docker run -it --rm -p 1883:1883 -p 9001:9001 -v C:\Users\keijo\Documents\config:/mosquitto/config eclipse-mosquito
 
-docker run -it --rm -p 1883:1883 -p 9001:9001 -v C:\Users\ville\Documents\GitHub\Garage_door_opener\config:/mosquitto/config eclipse-mosquitto
+docker run -it --rm -p 1883:1883 -p 9001:9001 -v C:\Users\ville\Documents\GitHub\Garage_door_opener\config:/mosquitto/config eclipse-mosquito
+
+docker exec -it serene_wescoff mosquitto_sub -t "garage/#" -v
 
 
 You can also make a batch file:

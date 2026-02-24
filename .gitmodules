@@ -1,0 +1,6 @@
+[submodule "lib/paho"]
+	path = lib/paho
+	url = https://github.com/eclipse-paho/paho.mqtt.embedded-c.git
+[submodule "external/PicoMQTT"]
+	path = external/PicoMQTT
+	url = https://github.com/mlesniew/PicoMQTT.git

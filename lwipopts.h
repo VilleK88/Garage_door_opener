@@ -89,4 +89,6 @@
 #define SLIP_DEBUG                  LWIP_DBG_OFF
 #define DHCP_DEBUG                  LWIP_DBG_OFF
 
+#define LWIP_MQTT 1
+#define MEMP_NUM_SYS_TIMEOUT 32
 #endif /* __LWIPOPTS_H__ */

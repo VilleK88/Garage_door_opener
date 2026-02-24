@@ -2,13 +2,11 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <cstdio>
+//#include <cstdio>
 
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
-#include "pico/cyw43_arch.h"
-#include "lwip/apps/Wifi.h"
 
 #include "main.h"
 #include "src/StateMachine.h"
@@ -16,6 +14,16 @@
 #include "src/Wifi.h"
 #include "config/wifi_config.h"
 #include "src/LoRaE5.h"
+#include "src/IPStack.h"
+#include "src/Mqttservice.h"
+
+extern "C" {
+//#include "lwip/sockets.h"
+//#include "lwip/netdb.h"
+//#include "lwip/ip4_addr.h"
+//#include "lwip/inet.h"
+#include "lwip/timeouts.h"
+}
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
@@ -25,10 +33,15 @@ int main() {
     stdio_init_all();
 
     Wifi wifi;
+    MqttService mqtt;
     if (wifi.connect_wifi()) {
-        wifi.init_udp(12345);
-        if (wifi.send_msg("10.161.6.23", 12345, "Hello from Pico")) {
-            std::cout << "Message send\n";
+        mqtt.connect(MY_IP_ADDR, CURRENT_PORT, "picoW-garage");
+        // Pumppaa lwIP timeouts + cyw43, jotta MQTT ehtii viedä handshaken läpi
+        absolute_time_t t_end = make_timeout_time_ms(3000);
+        while (!mqtt.is_connected() && absolute_time_diff_us(get_absolute_time(), t_end) < 0) {
+            cyw43_arch_poll();
+            sys_check_timeouts();
+            sleep_ms(1);
         }
     }
 
@@ -43,10 +56,10 @@ int main() {
     // Initialize state machine
     StateMachine sm(ledContr);
 
-    /*MqttClient mqtt;
+   /* MqttClient mqtt;
     if (wifi_ok)
-        mqtt.connect();*/
-    /*LoRaE5 lora;
+        mqtt.connect();
+    LoRaE5 lora;
     if (lora.check_comm())
         lora.join_network();
     lora.send_msg("Test");*/
@@ -54,6 +67,8 @@ int main() {
 
     event_t event;
     while (true) {
+        cyw43_arch_poll();
+        sys_check_timeouts();
 
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_CALIB && event.data == 1) {

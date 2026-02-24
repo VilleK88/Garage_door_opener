@@ -41,6 +41,10 @@ add_executable(${PROJECT_NAME}
         config/wifi_config.h
         src/LoRaE5.cpp
         src/LoRaE5.h
+        src/IPStack.cpp
+        src/IPStack.h
+        src/MqttService.cpp
+        src/MqttService.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -60,6 +64,7 @@ target_link_libraries(${PROJECT_NAME}
         pico_util
 
         pico_cyw43_arch_lwip_threadsafe_background
+        pico_lwip_mqtt
 )
 
 # Disable usb output, enable uart output
