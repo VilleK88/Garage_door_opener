@@ -4,8 +4,7 @@
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "pico/cyw43_arch.h"
-#include "src/StateMachine.h"
-#include "src/Wifi.h"
+//#include "src/StateMachine.h"
 #include "src/IPStack.h"
 
 #include <iostream>
@@ -16,12 +15,9 @@
 #include <cstdio>
 #include <cstring>
 
+#include "config/wifi_config.h"
+
 extern queue_t events;
-
-
-static constexpr auto TOPIC_CMD  = "garage/door/cmd";
-static constexpr auto TOPIC_STAT = "garage/door/status";
-static constexpr auto TOPIC_AVAIL = "garage/door/availability";
 
 bool MqttService::connect(const char* broker_ip, const uint16_t port, const char* client_id) {
     if (!client) client = mqtt_client_new();
@@ -142,6 +138,15 @@ void MqttService::on_incoming_data(void* arg, const u8_t* data, const u16_t len,
         self->rx_buf[0] = '\0';
     }
 }
+void MqttService::keep_connection_up() {
+    static uint32_t last_try = 0;
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    if (!is_connected() && now - last_try > 5000) {
+        last_try = now;
+        connect(MY_IP_ADDR, CURRENT_PORT, "picoW-garage");
+    }
+}
+
 
 void MqttService::handle_commands(const event_t &event) {
     if (event.type == EV_MQTT_CMD) {

@@ -25,21 +25,21 @@ queue_t events;
 int main() {
     // Initialize chosen serial port
     stdio_init_all();
+    // Initialize event queue for Interrupt Service Routine (ISR)
+    queue_init(&events, sizeof(event_t), 128);
 
     Wifi wifi;
     MqttService mqtt;
-    if (wifi.connect_wifi()) {
+    const bool wifi_conn = wifi.connect_wifi();
+    if (wifi_conn) {
         mqtt.connect(MY_IP_ADDR, CURRENT_PORT, "picoW-garage");
         // Pumppaa lwIP timeouts + cyw43, jotta MQTT ehtii viedä handshaken läpi
-        absolute_time_t t_end = make_timeout_time_ms(3000);
+        const absolute_time_t t_end = make_timeout_time_ms(3000);
         while (!mqtt.is_connected() && absolute_time_diff_us(get_absolute_time(), t_end) < 0) {
-            cyw43_arch_poll();
-            sys_check_timeouts();
+            network_poll();
             sleep_ms(1);
         }
     }
-
-
 
     // Initialize buttons
     init_buttons();
@@ -48,12 +48,14 @@ int main() {
     // Initialize Rotary Encoder
     init_encoder();
     // Initialize state machine
-    StateMachine sm(ledContr);
+    StateMachine sm(mqtt, ledContr);
 
     event_t event;
     while (true) {
-        cyw43_arch_poll();
-        sys_check_timeouts();
+        if (wifi_conn) {
+            network_poll();
+            mqtt.keep_connection_up();
+        }
 
         while (queue_try_remove(&events, &event)) {
             if (event.type == EV_CALIB && event.data == 1) {
@@ -169,9 +171,6 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
 // Configure buttons as inputs and attach IRQ callbacks.
 //------------------------------------------------------------
 void init_buttons() {
-    // Initialize event queue for Interrupt Service Routine (ISR)
-    queue_init(&events, sizeof(event_t), 128);
-
     for (int i = 0; i < BUTTONS_SIZE; i++) {
         gpio_init(buttons[i]); // Initialize GPIO pin
         gpio_set_dir(buttons[i], GPIO_IN); // Set as input
@@ -193,4 +192,9 @@ void init_encoder() {
     gpio_init(ENC_B);
     gpio_set_dir(ENC_B, GPIO_IN);
     gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_RISE, true);
+}
+
+void network_poll() {
+    cyw43_arch_poll();
+    sys_check_timeouts();
 }

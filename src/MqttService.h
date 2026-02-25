@@ -13,9 +13,14 @@ public:
     bool publish(const char* topic, const char* payload, int qos = 0, bool retain = false);
     bool subscribe(const char* topic, int qos = 0);
 
-    bool is_connected() const { return up; }
+    [[nodiscard]] bool is_connected() const { return up; }
 
+    void keep_connection_up();
     void handle_commands(const event_t &event);
+
+    static constexpr auto TOPIC_CMD  = "garage/door/cmd";
+    static constexpr auto TOPIC_STAT = "garage/door/status";
+    static constexpr auto TOPIC_AVAIL = "garage/door/availability";
 
 private:
     static void on_mqtt_connection(mqtt_client_t* client, void* arg, mqtt_connection_status_t status);

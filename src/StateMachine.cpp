@@ -1,12 +1,13 @@
 #include "StateMachine.h"
+#include "MqttService.h"
 #include "StepMotor.h"
 #include <iostream>
 #include <array>
 #include "pico/time.h"
 #include "Eeprom.h"
 
-StateMachine::StateMachine(LedController& newLedContr)
-    : stepMotor(coil_pins), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
+StateMachine::StateMachine(MqttService& new_mqtt, LedController& newLedContr)
+    : stepMotor(coil_pins), mqtt(new_mqtt), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
         right_limit(LIM_PIN_RIGHT)
 {
     std::cout << "Boot\n";
@@ -26,7 +27,9 @@ void StateMachine::run_sm() {
 }
 
 void StateMachine::next_state(const CurrentState st) {
+    const std::string str_st = get_st_string(st);
     std::cout << get_st_string(st) << "\n";
+    mqtt.publish(MqttService::TOPIC_STAT, str_st.c_str(), 0, true);
 
     if (st == CurrentState::idle) {
         last_ms_valid_ = false;
@@ -270,7 +273,7 @@ void StateMachine::handle_error() {
     ledContr.set_mode(LedMode::Error);
 }
 
-void StateMachine::set_led_st(const CurrentState st) {
+void StateMachine::set_led_st(const CurrentState st) const {
     switch (st) {
         case CurrentState::idle:
             ledContr.set_mode(error ? LedMode::Error : LedMode::Idle);

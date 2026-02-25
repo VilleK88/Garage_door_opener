@@ -1,16 +1,17 @@
 #ifndef SM_H
 #define SM_H
 #pragma once
-#include <cstdint>
 #include <iostream>
-#include <vector>
-#include <array>
-#include <optional>
+//#include <cstdint>
+//#include <vector>
+//#include <array>
+//#include <optional>
 
 #include "Eeprom.h"
 #include "StepMotor.h"
 #include "LimitSwitch.h"
 #include "LedController.h"
+//#include "MqttService.h"
 
 enum class CurrentState : uint8_t {
     idle = 0,
@@ -31,9 +32,12 @@ struct MainSmState {
     uint8_t state;
 };
 
+class MqttService;
+
 class StateMachine final {
 public:
-    explicit StateMachine(LedController& newLedContr);
+    //explicit StateMachine(MqttService& new_mqtt, LedController& newLedContr);
+    explicit StateMachine(MqttService& new_mqtt, LedController& newLedContr);
     void run_sm();
     void next_state(CurrentState st);
     [[nodiscard]] CurrentState currentState() const { return current_state; }
@@ -44,6 +48,7 @@ public:
 private:
     StepMotor stepMotor;
     Eeprom eeprom;
+    MqttService& mqtt;
     LedController& ledContr;
     LimitSwitch left_limit;
     LimitSwitch right_limit;
@@ -77,7 +82,7 @@ private:
 
     void check_if_stuck();
     void handle_error();
-    void set_led_st(CurrentState st);
+    void set_led_st(CurrentState st) const;
     bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();

@@ -32,9 +32,13 @@ typedef struct {
     char payload[128];
 } event_t;
 
+// Global event queue used by ISR (Interrupt Service Routine) and main loop
+//inline queue_t events;
+
 void gpio_callback(uint gpio, uint32_t event_mask);
 void init_buttons();
 void init_encoder();
-uint clamp(int br); // returns value between 0 and TOP
+//uint clamp(int br); // returns value between 0 and TOP
+void network_poll();
 
 #endif
