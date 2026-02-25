@@ -19,8 +19,8 @@ static constexpr std::array<uint, 3> buttons = {SW0, SW1, SW2};
 
 #define DEBOUNCE_MS 10 // Debounce delay in milliseconds
 
-static constexpr uint ENC_A = 14;
-static constexpr uint ENC_B = 15;
+//static constexpr uint ENC_A = 14;
+//static constexpr uint ENC_B = 15;
 
 // Type of event coming from the interrupt callback
 typedef enum { EV_SW0, EV_SW1, EV_SW2, EVENT_ENCODER, EV_CALIB, EV_MQTT_CMD } event_type;

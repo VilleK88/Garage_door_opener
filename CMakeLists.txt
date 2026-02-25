@@ -45,6 +45,9 @@ add_executable(${PROJECT_NAME}
         src/IPStack.h
         src/MqttService.cpp
         src/MqttService.h
+        src/RotaryEncoder.cpp
+        src/RotaryEncoder.h
+        utils/events.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

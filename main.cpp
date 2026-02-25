@@ -14,13 +14,17 @@
 #include "config/wifi_config.h"
 #include "src/IPStack.h"
 #include "src/Mqttservice.h"
+#include "src/RotaryEncoder.h"
+#include "utils/events.h"
 
 extern "C" {
 #include "lwip/timeouts.h"
 }
 
+RotaryEncoder* g_encoder = nullptr;
+
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
-queue_t events;
+//queue_t events;
 
 int main() {
     // Initialize chosen serial port
@@ -41,12 +45,13 @@ int main() {
         }
     }
 
+    // Initialize Rotary Encoder
+    static RotaryEncoder encoder;
+    g_encoder = &encoder;
     // Initialize buttons
     init_buttons();
     // Initialize leds
     LedController ledContr;
-    // Initialize Rotary Encoder
-    init_encoder();
     // Initialize state machine
     StateMachine sm(mqtt, ledContr);
 
@@ -66,8 +71,9 @@ int main() {
                 ledContr.press_button(BtnEv::SW1_EV);
                 sm.handle_door();
             }
-            if (event.type == EVENT_ENCODER)
+            if (event.type == EVENT_ENCODER) {
                 sm.update_position(sm.get_position() + event.data);
+            }
 
             if (event.type == EV_MQTT_CMD) {
                 std::cout << "Main got MQTT payload: " << event.payload << "\n";
@@ -88,6 +94,10 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
     static bool sw0_down = false;
     static bool sw2_down = false;
     static bool calib_latched = false;
+
+    if (g_encoder) {
+        g_encoder->on_gpio_irq(gpio, event_mask);
+    }
 
     if (gpio == SW0) {
         static uint32_t last_ms_r = 0; // Store last interrupt time
@@ -156,7 +166,7 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
         }
     }
 
-    if (gpio == ENC_A) {
+    /*if (gpio == ENC_A) {
         if (event_mask & GPIO_IRQ_EDGE_RISE) {
             bool b_state = gpio_get(ENC_B);
             event_t ev;
@@ -164,7 +174,7 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
             ev.data = b_state ? -1 : +1;
             queue_try_add(&events, &ev);
         }
-    }
+    }*/
 }
 
 //------------------------------------------------------------
@@ -184,14 +194,6 @@ void init_buttons() {
             gpio_set_irq_enabled(buttons[i], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true);
         }
     }
-}
-
-void init_encoder() {
-    gpio_init(ENC_A);
-    gpio_set_dir(ENC_A, GPIO_IN);
-    gpio_init(ENC_B);
-    gpio_set_dir(ENC_B, GPIO_IN);
-    gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_RISE, true);
 }
 
 void network_poll() {

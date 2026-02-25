@@ -44,7 +44,6 @@ public:
     void update_position(int new_position);
     [[nodiscard]] int get_position() const;
     void handle_door();
-    void remote_control();
 
 private:
     StepMotor stepMotor;

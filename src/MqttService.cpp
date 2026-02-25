@@ -1,5 +1,6 @@
 #include "MqttService.h"
 #include "../main.h" // event_t + EV_MQTT_CMD
+#include "utils/events.h"
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
@@ -17,7 +18,7 @@
 
 #include "config/wifi_config.h"
 
-extern queue_t events;
+//extern queue_t events;
 
 bool MqttService::connect(const char* broker_ip, const uint16_t port, const char* client_id) {
     if (!client) client = mqtt_client_new();

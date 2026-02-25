@@ -12,7 +12,7 @@
 #include "lwip/sockets.h"
 #include "pico/util/queue.h"
 
-extern queue_t events;
+//extern queue_t events;
 
 //static constexpr const char* TOPIC_STATUS = "garage/door/status";
 
