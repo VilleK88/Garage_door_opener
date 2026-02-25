@@ -1,13 +1,23 @@
 #include "MqttService.h"
+#include "../main.h" // event_t + EV_MQTT_CMD
+#include "pico/stdlib.h"
+#include "hardware/pwm.h"
+#include "pico/util/queue.h"
+#include "pico/cyw43_arch.h"
+#include "src/StateMachine.h"
+#include "src/Wifi.h"
+#include "src/IPStack.h"
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <memory>
 
 #include <cstdio>
 #include <cstring>
 
-#include "pico/cyw43_arch.h"
-#include "pico/util/queue.h"
 extern queue_t events;
 
-#include "../main.h" // event_t + EV_MQTT_CMD
 
 static constexpr const char* TOPIC_CMD  = "garage/door/cmd";
 static constexpr const char* TOPIC_STAT = "garage/door/status";
@@ -138,6 +148,27 @@ void MqttService::on_incoming_data(void* arg, const u8_t* data, u16_t len, u8_t 
     }
 }
 
+void MqttService::handle_commands(const event_t &event) {
+    if (event.type == EV_MQTT_CMD) {
+        std::cout << "Main got MQTT payload: " << event.payload << "\n";
+
+        if (std::strcmp(event.payload, "STATUS") == 0) {
+            publish("garage/door/status", "OK", 0, true);
+        } else if (std::strcmp(event.payload, "TOGGLE") == 0) {
+            // TODO: trigger_roller_relay_pulse(); tai sm.handle_door();
+            publish("garage/door/status", "TOGGLING", 0, true);
+        } else if (std::strcmp(event.payload, "OPEN") == 0) {
+            // TODO: open_door();
+            publish("garage/door/status", "OPENING", 0, true);
+        } else if (std::strcmp(event.payload, "CLOSE") == 0) {
+            // TODO: close_door();
+            publish("garage/door/status", "CLOSING", 0, true);
+        } else {
+            publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+        }
+    }
+}
+
 void MqttService::handle_command(const char* topic, const char* payload) {
     if (!topic || !payload) return;
     if (std::strcmp(topic, TOPIC_CMD) != 0) return;
@@ -152,46 +183,4 @@ void MqttService::handle_command(const char* topic, const char* payload) {
 
     // Optional: drop if queue is full (you can print/debug if needed)
     queue_try_add(&events, &ev);
-
-
-    /*if (!topic || !payload) return;
-
-    // Vain cmd-topic käsitellään komentona
-    if (std::strcmp(topic, TOPIC_CMD) != 0) return;
-
-    printf("CMD: %s\n", payload);
-
-    // Esimerkkikomennot:
-    // - "TOGGLE"
-    // - "OPEN"
-    // - "CLOSE"
-    // - "STATUS"
-    //
-    // Tässä kohtaa kutsut omaa ovilogikkaasi (rele, moottori, state machine).
-    // Kun tila muuttuu, julkaise status.
-
-    if (std::strcmp(payload, "STATUS") == 0) {
-        publish(TOPIC_STAT, "OK", 0, true);
-        return;
-    }
-
-    if (std::strcmp(payload, "TOGGLE") == 0) {
-        // TODO: trigger_roller_relay_pulse();
-        publish(TOPIC_STAT, "TOGGLING", 0, true);
-        return;
-    }
-
-    if (std::strcmp(payload, "OPEN") == 0) {
-        // TODO: open_door();
-        publish(TOPIC_STAT, "OPENING", 0, true);
-        return;
-    }
-
-    if (std::strcmp(payload, "CLOSE") == 0) {
-        // TODO: close_door();
-        publish(TOPIC_STAT, "CLOSING", 0, true);
-        return;
-    }
-
-    publish(TOPIC_STAT, "UNKNOWN_CMD", 0, true);*/
 }

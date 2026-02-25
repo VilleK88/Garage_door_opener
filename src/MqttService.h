@@ -3,6 +3,7 @@
 #pragma once
 #include <cstring>
 
+#include "main.h"
 #include "lwip/apps/mqtt.h"
 #include "lwip/err.h"
 
@@ -13,6 +14,8 @@ public:
     bool subscribe(const char* topic, int qos = 0);
 
     bool is_connected() const { return up; }
+
+    void handle_commands(const event_t &event);
 
 private:
     static void on_mqtt_connection(mqtt_client_t* client, void* arg, mqtt_connection_status_t status);

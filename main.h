@@ -1,8 +1,5 @@
 #ifndef MAIN_H
 #define MAIN_H
-#include <vector>
-#include <memory>
-#include "pico/util/queue.h"
 #include "src/StateMachine.h"
 
 #define CLK_DIV 125 // PWM clock divider
