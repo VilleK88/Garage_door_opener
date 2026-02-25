@@ -148,24 +148,21 @@ void MqttService::keep_connection_up() {
 }
 
 
-void MqttService::handle_commands(const event_t &event) {
+bool MqttService::handle_commands(const event_t &event) {
     if (event.type == EV_MQTT_CMD) {
         std::cout << "Main got MQTT payload: " << event.payload << "\n";
 
         if (std::strcmp(event.payload, "STATUS") == 0) {
             publish("garage/door/status", "OK", 0, true);
-        } else if (std::strcmp(event.payload, "TOGGLE") == 0) {
+            return false;
+        }
+        if (std::strcmp(event.payload, "TOGGLE") == 0) {
             // TODO: trigger_roller_relay_pulse(); tai sm.handle_door();
             publish("garage/door/status", "TOGGLING", 0, true);
-        } else if (std::strcmp(event.payload, "OPEN") == 0) {
-            // TODO: open_door();
-            publish("garage/door/status", "OPENING", 0, true);
-        } else if (std::strcmp(event.payload, "CLOSE") == 0) {
-            // TODO: close_door();
-            publish("garage/door/status", "CLOSING", 0, true);
-        } else {
-            publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+            return true;
         }
+        publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+        return false;
     }
 }
 

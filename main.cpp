@@ -71,9 +71,9 @@ int main() {
 
             if (event.type == EV_MQTT_CMD) {
                 std::cout << "Main got MQTT payload: " << event.payload << "\n";
+                if (mqtt.handle_commands(event))
+                    sm.handle_door();
             }
-
-            mqtt.handle_commands(event);
         }
 
         sm.run_sm();

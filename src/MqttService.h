@@ -16,7 +16,7 @@ public:
     [[nodiscard]] bool is_connected() const { return up; }
 
     void keep_connection_up();
-    void handle_commands(const event_t &event);
+    bool handle_commands(const event_t &event);
 
     static constexpr auto TOPIC_CMD  = "garage/door/cmd";
     static constexpr auto TOPIC_STAT = "garage/door/status";
