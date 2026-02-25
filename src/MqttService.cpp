@@ -19,11 +19,11 @@
 extern queue_t events;
 
 
-static constexpr const char* TOPIC_CMD  = "garage/door/cmd";
-static constexpr const char* TOPIC_STAT = "garage/door/status";
-static constexpr const char* TOPIC_AVAIL = "garage/door/availability";
+static constexpr auto TOPIC_CMD  = "garage/door/cmd";
+static constexpr auto TOPIC_STAT = "garage/door/status";
+static constexpr auto TOPIC_AVAIL = "garage/door/availability";
 
-bool MqttService::connect(const char* broker_ip, uint16_t port, const char* client_id) {
+bool MqttService::connect(const char* broker_ip, const uint16_t port, const char* client_id) {
     if (!client) client = mqtt_client_new();
     if (!client) {
         printf("mqtt_client_new failed\n");
@@ -52,11 +52,11 @@ bool MqttService::connect(const char* broker_ip, uint16_t port, const char* clie
     ci.will_retain = 1;
 
     cyw43_arch_lwip_begin();
-    err_t err = mqtt_client_connect(client, &addr, port, &MqttService::on_mqtt_connection, this, &ci);
+    const err_t err = mqtt_client_connect(client, &addr, port, &MqttService::on_mqtt_connection, this, &ci);
     cyw43_arch_lwip_end();
 
     if (err != ERR_OK) {
-        printf("mqtt_client_connect failed: %d\n", (int)err);
+        printf("mqtt_client_connect failed: %d\n", static_cast<int>(err));
         return false;
     }
     return true;
@@ -66,32 +66,32 @@ bool MqttService::publish(const char* topic, const char* payload, int qos, bool 
     if (!client || !up) return false;
 
     cyw43_arch_lwip_begin();
-    err_t err = mqtt_publish(client, topic, payload, (u16_t)std::strlen(payload),
-                             (u8_t)qos, retain ? 1 : 0, &MqttService::on_mqtt_request, this);
+    const err_t err = mqtt_publish(client, topic, payload, static_cast<u16_t>(std::strlen(payload)),
+                             static_cast<u8_t>(qos), retain ? 1 : 0, &MqttService::on_mqtt_request, this);
     cyw43_arch_lwip_end();
 
     if (err != ERR_OK) {
-        printf("mqtt_publish failed: %d\n", (int)err);
+        printf("mqtt_publish failed: %d\n", static_cast<int>(err));
         return false;
     }
     return true;
 }
 
-bool MqttService::subscribe(const char* topic, int qos) {
+bool MqttService::subscribe(const char* topic, const int qos) {
     if (!client || !up) return false;
 
     cyw43_arch_lwip_begin();
-    err_t err = mqtt_subscribe(client, topic, (u8_t)qos, &MqttService::on_mqtt_request, this);
+    err_t err = mqtt_subscribe(client, topic, static_cast<u8_t>(qos), &MqttService::on_mqtt_request, this);
     cyw43_arch_lwip_end();
 
     if (err != ERR_OK) {
-        printf("mqtt_subscribe failed: %d\n", (int)err);
+        printf("mqtt_subscribe failed: %d\n", static_cast<int>(err));
         return false;
     }
     return true;
 }
 
-void MqttService::on_mqtt_connection(mqtt_client_t* /*client*/, void* arg, mqtt_connection_status_t status) {
+void MqttService::on_mqtt_connection(mqtt_client_t* /*client*/, void* arg, const mqtt_connection_status_t status) {
     auto* self = static_cast<MqttService*>(arg);
 
     if (status == MQTT_CONNECT_ACCEPTED) {
@@ -108,12 +108,12 @@ void MqttService::on_mqtt_connection(mqtt_client_t* /*client*/, void* arg, mqtt_
         self->publish(TOPIC_STAT, "BOOT", 0, true);
     } else {
         self->up = false;
-        printf("MQTT connect failed, status=%d\n", (int)status);
+        printf("MQTT connect failed, status=%d\n", static_cast<int>(status));
     }
 }
 
-void MqttService::on_mqtt_request(void* /*arg*/, err_t result) {
-    printf("MQTT request result=%d\n", (int)result);
+void MqttService::on_mqtt_request(void* /*arg*/, const err_t result) {
+    printf("MQTT request result=%d\n", static_cast<int>(result));
 }
 
 // Kutsutaan kun uusi publish alkaa (topic tiedossa, payloadia ei vielä)
@@ -125,11 +125,11 @@ void MqttService::on_incoming_publish(void* arg, const char* topic, u32_t /*tot_
 }
 
 // Kutsutaan payload-palojen saapuessa; flags sisältää MQTT_DATA_FLAG_LAST viimeisessä palassa
-void MqttService::on_incoming_data(void* arg, const u8_t* data, u16_t len, u8_t flags) {
+void MqttService::on_incoming_data(void* arg, const u8_t* data, const u16_t len, const u8_t flags) {
     auto* self = static_cast<MqttService*>(arg);
 
     // Kokoa payload bufferiin (trunkkaa tarvittaessa)
-    size_t space = (self->RX_MAX - 1) - self->rx_len;
+    const size_t space = self->RX_MAX - 1 - self->rx_len;
     size_t copy_len = (len < space) ? len : space;
 
     if (copy_len > 0 && data) {
