@@ -18,13 +18,13 @@
 
 bool Wifi::connect_wifi() {
     const int init_rc = cyw43_arch_init_with_country(CYW43_COUNTRY_FINLAND);
-    printf("cyw43_arch_init rc=%d\n", init_rc);
+    //printf("cyw43_arch_init rc=%d\n", init_rc);
 
     if (init_rc) {
-        std::cout << "cyw43 init failed\n";
+        //std::cout << "cyw43 init failed\n";
     }
     else {
-        std::cout << "cyw43 init completed\n";
+        //std::cout << "cyw43 init completed\n";
         cyw43_arch_enable_sta_mode();
 
         auto SSID = WIFI_SSID;
@@ -32,11 +32,11 @@ bool Wifi::connect_wifi() {
 
         if (cyw43_arch_wifi_connect_timeout_ms(SSID, PASS,
             CYW43_AUTH_WPA2_AES_PSK, CONN_TIMEOUT_MS)) {
-            std::cout << "Wifi connect failed\n";
+            std::cout << "Wi-Fi connect failed\n";
             }
         else {
             connected = true;
-            std::cout << "Wifi connected\n";
+            std::cout << "Wi-Fi connected\n";
             while (!netif_default || !netif_is_up(netif_default) ||
                 ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {
                 cyw43_arch_poll();

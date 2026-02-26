@@ -34,7 +34,15 @@ int main() {
 
     Wifi wifi;
     MqttService mqtt;
-    const bool wifi_conn = wifi.connect_wifi();
+
+
+    bool wifi_conn = false;
+    int index = 0;
+    while (!wifi_conn && index < 5) {
+        wifi_conn = wifi.connect_wifi();
+        index++;
+    }
+
     if (wifi_conn) {
         mqtt.connect(MY_IP_ADDR, CURRENT_PORT, "picoW-garage");
         // Pumppaa lwIP timeouts + cyw43, jotta MQTT ehtii viedä handshaken läpi
