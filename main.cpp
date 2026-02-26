@@ -12,7 +12,6 @@
 #include "src/LedController.h"
 #include "src/Wifi.h"
 #include "config/wifi_config.h"
-#include "src/IPStack.h"
 #include "src/Mqttservice.h"
 #include "src/RotaryEncoder.h"
 #include "utils/events.h"
@@ -179,16 +178,6 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
             }
         }
     }
-
-    /*if (gpio == ENC_A) {
-        if (event_mask & GPIO_IRQ_EDGE_RISE) {
-            bool b_state = gpio_get(ENC_B);
-            event_t ev;
-            ev.type = EVENT_ENCODER;
-            ev.data = b_state ? -1 : +1;
-            queue_try_add(&events, &ev);
-        }
-    }*/
 }
 
 //------------------------------------------------------------

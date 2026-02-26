@@ -1,10 +1,9 @@
 #include "Eeprom.h"
 #include <iostream>
 #include <cstring>
-#include <cstdio>
 #include "hardware/gpio.h"
 
-void Eeprom::init_eeprom() {
+void Eeprom::init_eeprom() const {
     init_i2c();
     init_memory();
 }

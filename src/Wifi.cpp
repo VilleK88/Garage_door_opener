@@ -9,7 +9,6 @@
 #include "pico/util/queue.h"
 #include "pico/stdlib.h"
 #include "src/StateMachine.h"
-#include "src/IPStack.h"
 #include "src/RotaryEncoder.h"
 
 bool Wifi::init() {

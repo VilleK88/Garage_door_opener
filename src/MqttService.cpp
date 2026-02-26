@@ -5,20 +5,13 @@
 #include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "pico/cyw43_arch.h"
-//#include "src/StateMachine.h"
-#include "src/IPStack.h"
-
 #include <iostream>
 #include <vector>
 #include <string>
 #include <memory>
-
 #include <cstdio>
 #include <cstring>
-
 #include "config/wifi_config.h"
-
-//extern queue_t events;
 
 bool MqttService::connect(const char* broker_ip, const uint16_t port, const char* client_id) {
     if (!client) client = mqtt_client_new();

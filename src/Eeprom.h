@@ -40,7 +40,7 @@ public:
     };
 
     Eeprom() = default;
-    void init_eeprom();
+    void init_eeprom() const;
 
     // --- Validated state (8-bit) ---
     void write_state(uint16_t addr, uint8_t state) const;

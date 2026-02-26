@@ -39,10 +39,6 @@ add_executable(${PROJECT_NAME}
         src/Wifi.h
         lwipopts.h
         config/wifi_config.h
-        src/LoRaE5.cpp
-        src/LoRaE5.h
-        src/IPStack.cpp
-        src/IPStack.h
         src/MqttService.cpp
         src/MqttService.h
         src/RotaryEncoder.cpp
