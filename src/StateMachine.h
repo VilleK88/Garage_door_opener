@@ -2,16 +2,10 @@
 #define SM_H
 #pragma once
 #include <iostream>
-//#include <cstdint>
-//#include <vector>
-//#include <array>
-//#include <optional>
-
 #include "Eeprom.h"
 #include "StepMotor.h"
 #include "LimitSwitch.h"
 #include "LedController.h"
-//#include "MqttService.h"
 
 enum class CurrentState : uint8_t {
     idle = 0,

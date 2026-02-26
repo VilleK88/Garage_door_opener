@@ -24,7 +24,7 @@ extern "C" {
 RotaryEncoder* g_encoder = nullptr;
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
-//queue_t events;
+queue_t events;
 
 int main() {
     // Initialize chosen serial port
@@ -35,12 +35,13 @@ int main() {
     Wifi wifi;
     MqttService mqtt;
 
-
     bool wifi_conn = false;
-    int index = 0;
-    while (!wifi_conn && index < 5) {
-        wifi_conn = wifi.connect_wifi();
-        index++;
+    if (wifi.init()) {
+        int index = 0;
+        while (!wifi_conn && index < 5) {
+            wifi_conn = wifi.connect_wifi();
+            index++;
+        }
     }
 
     if (wifi_conn) {
@@ -53,13 +54,14 @@ int main() {
         }
     }
 
-    // Initialize Rotary Encoder
-    static RotaryEncoder encoder;
-    g_encoder = &encoder;
     // Initialize buttons
     init_buttons();
     // Initialize leds
     LedController ledContr;
+    // Initialize Rotary Encoder
+    static RotaryEncoder encoder;
+    g_encoder = &encoder;
+
     // Initialize state machine
     StateMachine sm(mqtt, ledContr);
 
@@ -85,8 +87,12 @@ int main() {
 
             if (event.type == EV_MQTT_CMD) {
                 std::cout << "Main got MQTT payload: " << event.payload << "\n";
-                if (mqtt.handle_commands(event))
-                    sm.handle_door();
+                if (mqtt.handle_commands(event)) {
+                    if (mqtt.current_cmd == MqttService::TOGGLE)
+                        sm.handle_door();
+                    else if (mqtt.current_cmd == MqttService::CALIBRATE)
+                        sm.next_state(CurrentState::init_calib);
+                }
             }
         }
 

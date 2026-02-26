@@ -155,14 +155,22 @@ bool MqttService::handle_commands(const event_t &event) {
 
         if (std::strcmp(event.payload, "STATUS") == 0) {
             publish("garage/door/status", "OK", 0, true);
+            current_cmd = STATUS;
             return false;
         }
         if (std::strcmp(event.payload, "TOGGLE") == 0) {
             // TODO: trigger_roller_relay_pulse(); tai sm.handle_door();
             publish("garage/door/status", "TOGGLING", 0, true);
+            current_cmd = TOGGLE;
+            return true;
+        }
+        if (std::strcmp(event.payload, "CALIBRATE") == 0) {
+            publish("garage/door/status", "CALIBRATION", 0, true);
+            current_cmd = CALIBRATE;
             return true;
         }
         publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+        current_cmd = UNKNOWN_CMD;
         return false;
     }
 }

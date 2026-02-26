@@ -7,6 +7,7 @@
 class Wifi final {
 public:
     Wifi() = default;
+    bool init();
     bool connect_wifi();
 
 private:

@@ -3,17 +3,11 @@
 //
 
 #include "RotaryEncoder.h"
-
-#include "main.h"
+#include "../main.h"
 #include "hardware/gpio.h"
 #include "utils/events.h"
 
-queue_t events;
-
-RotaryEncoder* RotaryEncoder::instance = nullptr;
-
 RotaryEncoder::RotaryEncoder() {
-    instance = this;
     init_encoder();
 }
 
@@ -23,11 +17,6 @@ void RotaryEncoder::init_encoder() const {
     gpio_init(ENC_B);
     gpio_set_dir(ENC_B, GPIO_IN);
     gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_RISE, true);
-}
-
-void RotaryEncoder::gpio_irq_trampoline(uint gpio, uint32_t events) {
-    if (instance)
-        instance->on_gpio_irq(gpio, events);
 }
 
 void RotaryEncoder::on_gpio_irq(const uint gpio, const uint32_t event_mask) const {

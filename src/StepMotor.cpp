@@ -2,8 +2,6 @@
 #include "hardware/gpio.h"
 #include "pico/time.h"
 
-static int steps_per_rev = DEFAULT_STEPS_PER_REV;
-
 StepMotor::StepMotor(const std::array<uint, 4>& pins)
     : coil_pins(pins) {}
 
