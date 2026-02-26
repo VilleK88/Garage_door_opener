@@ -1,17 +1,13 @@
 #include "LedController.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
+#include "pico/time.h"
 
 LedController::LedController() {
     init_leds();
 }
 
 void LedController::init_leds() const {
-    /*for (const auto pin : led_pins) {
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
-        gpio_put(pin, false);
-    }*/
     // Track which PWM slices (0-7) have been initialized
     bool slice_ini[8] = {false};
 

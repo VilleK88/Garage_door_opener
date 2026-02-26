@@ -2,7 +2,9 @@
 #define LED_H
 #pragma once
 #include <array>
-#include "pico/time.h"
+#include <cstdint>
+
+#include "pico/types.h"
 
 enum class LedMode : uint8_t {
     Idle,
