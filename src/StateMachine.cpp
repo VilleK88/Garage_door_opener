@@ -161,14 +161,11 @@ void StateMachine::close_door_st() {
 
 void StateMachine::error_st() {
     if (every_ms(500)) {
-        if (!ledContr.blink) {
+        if (!ledContr.blink)
             ledContr.set_brightness(LedController::LED1, LedController::BR_MID);
-            ledContr.blink = true;
-        }
-        else {
+        else
             ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
-            ledContr.blink = false;
-        }
+        ledContr.blink = !ledContr.blink;
     }
 }
 
