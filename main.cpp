@@ -13,7 +13,6 @@
 #include "src/Mqttservice.h"
 #include "src/RotaryEncoder.h"
 #include "utils/events.h"
-#include "src/LedController.h"
 
 extern "C" {
 #include "lwip/timeouts.h"
@@ -52,7 +51,6 @@ int main() {
             sleep_ms(1);
         }
     }
-
 
     // Initialize Rotary Encoder
     static RotaryEncoder encoder;

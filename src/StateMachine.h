@@ -15,6 +15,7 @@ enum class CurrentState : uint8_t {
     step_correction = 4,
     open_door = 5,
     close_door = 6,
+    error_state = 7
 };
 
 struct SmState {
@@ -68,6 +69,7 @@ private:
     void step_correction_st();
     void open_door_st();
     void close_door_st();
+    void error_st();
 
     void init_states();
     [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr, const std::string& str_st) const;
@@ -76,8 +78,6 @@ private:
     std::string get_st_string(CurrentState st);
 
     void check_if_stuck();
-    //void handle_error();
-    //void set_led_st(CurrentState st) const;
     bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();
@@ -89,6 +89,7 @@ private:
         &StateMachine::step_correction_st,
         &StateMachine::open_door_st,
         &StateMachine::close_door_st,
+        &StateMachine::error_st
     };
 
     CurrentState current_state{CurrentState::idle};

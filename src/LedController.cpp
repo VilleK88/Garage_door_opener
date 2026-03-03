@@ -1,7 +1,6 @@
 #include "LedController.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
-#include "pico/time.h"
 
 LedController::LedController() {
     init_leds();
@@ -41,7 +40,7 @@ void LedController::init_leds() const {
     }
 }
 
-void LedController::light_switch(event_t event) const {
+void LedController::light_switch(const event_t &event) const {
     switch (event.type) {
         case EV_SW0:
             set_brightness(LED2, event.data ? BR_MID : LIGHT_OFF);

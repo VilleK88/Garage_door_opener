@@ -5,6 +5,7 @@
 #include <array>
 #include "pico/time.h"
 #include "Eeprom.h"
+#include "LedController.h"
 
 StateMachine::StateMachine(MqttService& new_mqtt, LedController& newLedContr)
     : stepMotor(coil_pins), mqtt(new_mqtt), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
@@ -27,6 +28,7 @@ void StateMachine::run_sm() {
 }
 
 void StateMachine::next_state(const CurrentState st) {
+    if (error) ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
     const std::string str_st = get_st_string(st);
     std::cout << get_st_string(st) << "\n";
     mqtt.publish(MqttService::TOPIC_STAT, str_st.c_str(), 0, true);
@@ -49,7 +51,6 @@ void StateMachine::next_state(const CurrentState st) {
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
     }
 
-    //set_led_st(st);
     current_state = st;
     last_ms_valid_ = false;
 }
@@ -158,6 +159,19 @@ void StateMachine::close_door_st() {
     }
 }
 
+void StateMachine::error_st() {
+    if (every_ms(500)) {
+        if (!ledContr.blink) {
+            ledContr.set_brightness(LedController::LED1, LedController::BR_MID);
+            ledContr.blink = true;
+        }
+        else {
+            ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
+            ledContr.blink = false;
+        }
+    }
+}
+
 void StateMachine::update_position(const int new_position) {
     if (new_position != encoder_pos) {
         encoder_pos = new_position;
@@ -168,13 +182,12 @@ void StateMachine::update_position(const int new_position) {
 void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
-        //handle_error();
         error = true;
-        std::cout << "Fault state\n";
+        //std::cout << "Fault state\n";
         std::cout << "Recalibration required.\n";
         eeprom.write_state(Eeprom::CALIB_ADDR, 0);
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);
-        next_state(CurrentState::idle);
+        next_state(CurrentState::error_state);
     }
 }
 
@@ -196,6 +209,8 @@ void StateMachine::handle_door() {
             next_state(CurrentState::idle);
         }
     }
+    else
+        std::cout << "Calibrate first\n";
 }
 
 void StateMachine::init_states() {
@@ -239,8 +254,8 @@ void StateMachine::init_states() {
         std::cout << "Persistent states restored\n";
     }
     else {
-        //handle_error();
         error = true;
+        current_state = CurrentState::error_state;
         std::cout << "Power loss during motor operation resulted in an error state\n";
     }
 }
@@ -266,33 +281,10 @@ std::string StateMachine::get_st_string(const CurrentState st) {
         case CurrentState::step_correction: return "Step correction state";
         case CurrentState::open_door: return "Open door state";
         case CurrentState::close_door: return "Close door state";
+        case CurrentState::error_state: return "Error state";
         default: return "Idle state";
     }
 }
-
-/*void StateMachine::handle_error() {
-    error = true;
-    ledContr.set_mode(LedMode::Error);
-}
-
-void StateMachine::set_led_st(const CurrentState st) const {
-    switch (st) {
-        case CurrentState::idle:
-            ledContr.set_mode(error ? LedMode::Error : LedMode::Idle);
-            break;
-        case CurrentState::init_calib:
-        case CurrentState::calib_open_door:
-        case CurrentState::calib_close_door:
-        case CurrentState::step_correction:
-            ledContr.set_mode(LedMode::Calib);
-            break;
-        case CurrentState::open_door:
-        case CurrentState::close_door:
-            ledContr.set_mode(LedMode::Moving);
-            break;
-
-    }
-}*/
 
 bool StateMachine::every_ms(const uint32_t interval_ms) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());

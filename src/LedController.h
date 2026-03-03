@@ -21,7 +21,8 @@ public:
 
     void init_leds() const;
 
-    void light_switch(event_t event) const;
+    void light_switch(const event_t &event) const;
+    void set_brightness(uint led, uint brightness) const;
 
     static constexpr uint CLK_DIV = 125; // PWM clock divider
     static constexpr uint TOP = 999; // PWM counter top value
@@ -33,20 +34,19 @@ public:
     static constexpr uint16_t MAX_BR = TOP + 1; // Max brightness
     static constexpr uint BR_MID = MAX_BR / 2; // 50% brightness level
 
+    static constexpr uint LED0{22};
+    static constexpr uint LED1{21};
+    static constexpr uint LED2{20};
+
+    bool blink{false};
+
 private:
-    uint LED0{22};
-    uint LED1{21};
-    uint LED2{20};
     std::array<uint, 3> led_pins{LED0, LED1, LED2};
     uint32_t last_blink_ms{0};
-    bool blink_state{false};
+    //bool blink_state{false};
 
     LedMode current_mode{LedMode::Idle};
 
-    void render_base() const;
-    void render_error(uint32_t now_ms);
-
-    void set_brightness(uint led, uint brightness) const;
     uint clamp(int br);
 };
 
