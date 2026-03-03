@@ -18,7 +18,7 @@ void LedController::init_leds() const {
     // Set wrap (TOP)
     pwm_config_set_wrap(&config, TOP);
 
-    for (auto pin : led_pins) {
+    for (const auto pin : led_pins) {
         // Get slice and channel for your GPIO pin
         const uint slice = pwm_gpio_to_slice_num(pin);
         const uint chan = pwm_gpio_to_channel(pin);
@@ -41,75 +41,20 @@ void LedController::init_leds() const {
     }
 }
 
-void LedController::update(const uint32_t now_ms) {
-    if (current_mode != LedMode::Error) {
-        render_base();
+void LedController::light_switch(event_t event) const {
+    switch (event.type) {
+        case EV_SW0:
+            set_brightness(LED2, event.data ? BR_MID : LIGHT_OFF);
+            break;
+        case EV_SW1:
+            set_brightness(LED1, event.data ? BR_MID : LIGHT_OFF);
+            break;
+        case EV_SW2:
+            set_brightness(LED0, event.data ? BR_MID : LIGHT_OFF);
+            break;
+        default:
+            break;
     }
-    else {
-        render_error(now_ms);
-    }
-}
-
-void LedController::set_mode(const LedMode mode) {
-    current_mode = mode;
-    if (current_mode == LedMode::Error) {
-        last_blink_ms = to_ms_since_boot(get_absolute_time());
-        blink_state = false;
-    }
-    render_base();
-}
-
-void LedController::press_button(const BtnEv ev) const {
-    if (current_mode != LedMode::Error) {
-        switch (ev) {
-            case BtnEv::SW0_EV:
-                set_brightness(LED0, BR_MID);
-                break;
-            case BtnEv::SW1_EV:
-                set_brightness(LED1, BR_MID);
-                break;
-            case BtnEv::SW2_EV:
-                set_brightness(LED2, BR_MID);
-                break;
-            default: break;
-        }
-    }
-}
-
-void LedController::switch_leds(const bool on) const {
-    for (const auto pin : led_pins) {
-        if (on)
-            set_brightness(pin, BR_MID);
-        else
-            set_brightness(pin, LIGHT_OFF);
-    }
-}
-
-void LedController::blink_middle_led() {
-    uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (now - last_blink_ms > 500) {
-        last_blink_ms = now;
-        blink_state = !blink_state;
-        set_brightness(LED2, blink_state ? BR_MID : LIGHT_OFF);
-    }
-}
-
-void LedController::render_base() const {
-    switch_leds(false);
-    switch (current_mode) {
-        case LedMode::Idle: break;
-        case LedMode::Moving: break;
-        case LedMode::Calib: break;
-        case LedMode::Error: break;
-    }
-}
-
-void LedController::render_error(const uint32_t now_ms) {
-    if (now_ms - last_blink_ms >= 500) {
-        last_blink_ms = now_ms;
-        blink_state = !blink_state;
-    }
-    switch_leds(blink_state);
 }
 
 /*

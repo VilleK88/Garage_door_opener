@@ -1,10 +1,12 @@
 #ifndef LED_H
 #define LED_H
 #pragma once
+#include "utils/events.h"
 #include <array>
 #include <cstdint>
 
 #include "pico/types.h"
+#include "hardware/pwm.h"
 
 enum class LedMode : uint8_t {
     Idle,
@@ -13,26 +15,13 @@ enum class LedMode : uint8_t {
     Error
 };
 
-enum class BtnEv : uint8_t {
-    SW0_EV,
-    SW1_EV,
-    SW2_EV,
-    CalibCombo
-};
-
 class LedController {
 public:
     LedController();
 
     void init_leds() const;
 
-    void update(uint32_t now_ms);
-    void set_mode(LedMode mode);
-    void press_button(BtnEv ev) const;
-
-    void switch_leds(bool on) const;
-
-    void blink_middle_led();
+    void light_switch(event_t event) const;
 
     static constexpr uint CLK_DIV = 125; // PWM clock divider
     static constexpr uint TOP = 999; // PWM counter top value

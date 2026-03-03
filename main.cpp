@@ -1,10 +1,7 @@
 #include <iostream>
-#include <vector>
-#include <string>
 #include <memory>
 
 #include "pico/stdlib.h"
-#include "hardware/pwm.h"
 #include "pico/util/queue.h"
 
 #include "main.h"
@@ -12,15 +9,18 @@
 #include "src/LedController.h"
 #include "src/Wifi.h"
 #include "config/wifi_config.h"
+#include "src/ButtonController.h"
 #include "src/Mqttservice.h"
 #include "src/RotaryEncoder.h"
 #include "utils/events.h"
+#include "src/LedController.h"
 
 extern "C" {
 #include "lwip/timeouts.h"
 }
 
 RotaryEncoder* g_encoder = nullptr;
+ButtonController* g_btnContr = nullptr;
 
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 queue_t events;
@@ -53,13 +53,15 @@ int main() {
         }
     }
 
-    // Initialize buttons
-    init_buttons();
-    // Initialize leds
-    LedController ledContr;
+
     // Initialize Rotary Encoder
     static RotaryEncoder encoder;
     g_encoder = &encoder;
+    // Initialize buttons
+    static ButtonController btnContr;
+    g_btnContr = &btnContr;
+    // Initialize leds
+    LedController ledContr;
 
     // Initialize state machine
     StateMachine sm(mqtt, ledContr);
@@ -72,32 +74,33 @@ int main() {
         }
 
         while (queue_try_remove(&events, &event)) {
-            if (event.type == EV_CALIB && event.data == 1) {
-                ledContr.press_button(BtnEv::CalibCombo);
-                sm.next_state(CurrentState::init_calib);
-            }
-            if (event.type == EV_SW1 && event.data == 1) {
-                ledContr.press_button(BtnEv::SW1_EV);
-                sm.handle_door();
-            }
-            if (event.type == EVENT_ENCODER) {
-                sm.update_position(sm.get_position() + event.data);
-            }
 
-            if (event.type == EV_MQTT_CMD) {
-                std::cout << "Main got MQTT payload: " << event.payload << "\n";
-                if (mqtt.handle_commands(event)) {
-                    if (mqtt.current_cmd == MqttService::TOGGLE)
-                        sm.handle_door();
-                    else if (mqtt.current_cmd == MqttService::CALIBRATE)
-                        sm.next_state(CurrentState::init_calib);
-                }
+            ledContr.light_switch(event);
+
+            switch (event.type) {
+                case EV_CALIB:
+                    if (event.data == 1) sm.next_state(CurrentState::init_calib);
+                    break;
+                case EV_SW1:
+                    if (event.data == 1) sm.handle_door();
+                    break;
+                case EVENT_ENCODER:
+                    sm.update_position(sm.get_position() + event.data);
+                    break;
+                case EV_MQTT_CMD:
+                    if (mqtt.handle_commands(event)) {
+                        if (mqtt.current_cmd == MqttService::TOGGLE)
+                            sm.handle_door();
+                        else if (mqtt.current_cmd == MqttService::CALIBRATE)
+                            sm.next_state(CurrentState::init_calib);
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
         sm.run_sm();
-        ledContr.update(to_ms_since_boot(get_absolute_time()));
-
         sleep_ms(1);
     }
 }
@@ -176,25 +179,6 @@ void gpio_callback(uint const gpio, uint32_t const event_mask) {
                 constexpr event_t ce = { .type = EV_CALIB, .data = 1 };
                 queue_try_add(&events, &ce);
             }
-        }
-    }
-}
-
-//------------------------------------------------------------
-// Configure buttons as inputs and attach IRQ callbacks.
-//------------------------------------------------------------
-void init_buttons() {
-    for (int i = 0; i < BUTTONS_SIZE; i++) {
-        gpio_init(buttons[i]); // Initialize GPIO pin
-        gpio_set_dir(buttons[i], GPIO_IN); // Set as input
-        gpio_pull_up(buttons[i]); // Enable internal pull-up resistor (button reads high = true when not pressed)
-        // Configure button interrupt and callback
-        if (i == 0) {
-            gpio_set_irq_enabled_with_callback(buttons[i], GPIO_IRQ_EDGE_FALL |
-            GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
-        }
-        else {
-            gpio_set_irq_enabled(buttons[i], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true);
         }
     }
 }

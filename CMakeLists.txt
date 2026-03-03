@@ -44,6 +44,8 @@ add_executable(${PROJECT_NAME}
         src/RotaryEncoder.cpp
         src/RotaryEncoder.h
         utils/events.h
+        src/ButtonController.cpp
+        src/ButtonController.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

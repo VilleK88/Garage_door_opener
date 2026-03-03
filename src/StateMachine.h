@@ -27,6 +27,7 @@ struct MainSmState {
 };
 
 class MqttService;
+class LedController;
 
 class StateMachine final {
 public:
@@ -75,8 +76,8 @@ private:
     std::string get_st_string(CurrentState st);
 
     void check_if_stuck();
-    void handle_error();
-    void set_led_st(CurrentState st) const;
+    //void handle_error();
+    //void set_led_st(CurrentState st) const;
     bool every_ms(uint32_t interval_ms);
 
     using Handler = void (StateMachine::*)();

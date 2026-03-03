@@ -49,7 +49,7 @@ void StateMachine::next_state(const CurrentState st) {
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
     }
 
-    set_led_st(st);
+    //set_led_st(st);
     current_state = st;
     last_ms_valid_ = false;
 }
@@ -168,7 +168,8 @@ void StateMachine::update_position(const int new_position) {
 void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
-        handle_error();
+        //handle_error();
+        error = true;
         std::cout << "Fault state\n";
         std::cout << "Recalibration required.\n";
         eeprom.write_state(Eeprom::CALIB_ADDR, 0);
@@ -238,7 +239,8 @@ void StateMachine::init_states() {
         std::cout << "Persistent states restored\n";
     }
     else {
-        handle_error();
+        //handle_error();
+        error = true;
         std::cout << "Power loss during motor operation resulted in an error state\n";
     }
 }
@@ -268,7 +270,7 @@ std::string StateMachine::get_st_string(const CurrentState st) {
     }
 }
 
-void StateMachine::handle_error() {
+/*void StateMachine::handle_error() {
     error = true;
     ledContr.set_mode(LedMode::Error);
 }
@@ -290,7 +292,7 @@ void StateMachine::set_led_st(const CurrentState st) const {
             break;
 
     }
-}
+}*/
 
 bool StateMachine::every_ms(const uint32_t interval_ms) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
