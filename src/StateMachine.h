@@ -56,6 +56,10 @@ private:
     int motor_step_pos{0};
     int lowest_pos{0};
     int highest_pos{0};
+    int pos_offset{500};
+
+    int step_ms{1};
+    int step{1};
 
     int encoder_pos{0};
     int previous_encoder_pos{0};

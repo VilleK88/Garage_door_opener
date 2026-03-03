@@ -67,8 +67,8 @@ void StateMachine::init_calib_st() {
         next_state(CurrentState::calib_open_door);
     }
     else {
-        if (every_ms(1))
-            stepMotor.step(-1);
+        if (every_ms(step_ms))
+            stepMotor.step(-step);
         check_if_stuck();
     }
 }
@@ -81,8 +81,8 @@ void StateMachine::calib_open_door_st() {
         next_state(CurrentState::calib_close_door);
     }
     else {
-        if (every_ms(1))
-            motor_step_pos += stepMotor.run_step_motor(1);
+        if (every_ms(step_ms))
+            motor_step_pos += stepMotor.run_step_motor(step);
         check_if_stuck();
     }
 }
@@ -100,15 +100,15 @@ void StateMachine::calib_close_door_st() {
         next_state(CurrentState::step_correction);
     }
     else {
-        if (every_ms(1))
-            motor_step_pos += stepMotor.run_step_motor(-1);
+        if (every_ms(step_ms))
+            motor_step_pos += stepMotor.run_step_motor(-step);
         check_if_stuck();
     }
 
 }
 
 void StateMachine::step_correction_st() {
-    if (motor_step_pos >= lowest_pos + 500) {
+    if (motor_step_pos >= lowest_pos + pos_offset) {
         next_direction = true;
         calibrated = true;
         error = false;
@@ -121,8 +121,8 @@ void StateMachine::step_correction_st() {
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1))
-            motor_step_pos += stepMotor.run_step_motor(1);
+        if (every_ms(step_ms))
+            motor_step_pos += stepMotor.run_step_motor(step);
         check_if_stuck();
     }
 }
@@ -130,14 +130,14 @@ void StateMachine::step_correction_st() {
 void StateMachine::open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
-    if (right_hit || motor_step_pos >= highest_pos - 500) {
+    if (right_hit || motor_step_pos >= highest_pos - pos_offset) {
         next_direction = false;
         std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1))
-            motor_step_pos += stepMotor.run_step_motor(1);
+        if (every_ms(step_ms))
+            motor_step_pos += stepMotor.run_step_motor(step);
         check_if_stuck();
     }
 }
@@ -145,7 +145,7 @@ void StateMachine::open_door_st() {
 void StateMachine::close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
-    if (left_hit || motor_step_pos <= lowest_pos + 500) {
+    if (left_hit || motor_step_pos <= lowest_pos + pos_offset) {
         next_direction = true;
         eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
@@ -153,8 +153,8 @@ void StateMachine::close_door_st() {
         next_state(CurrentState::idle);
     }
     else {
-        if (every_ms(1))
-            motor_step_pos += stepMotor.run_step_motor(-1);
+        if (every_ms(step_ms))
+            motor_step_pos += stepMotor.run_step_motor(-step);
         check_if_stuck();
     }
 }
