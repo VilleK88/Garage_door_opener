@@ -2,7 +2,6 @@
 #define MQTTSERVICE_H
 #pragma once
 #include "main.h"
-#include <cstring>
 #include "lwip/apps/mqtt.h"
 #include "lwip/err.h"
 
@@ -60,6 +59,7 @@ private:
 
     mqtt_client_t* client{nullptr}; // lwIP MQTT client instance
     bool up{false}; // connection state
+    bool all_ready_conn{false};
 
     // Receive buffer for assembling payload fragments from lwIP callbacks.
     static constexpr size_t RX_MAX = 256;

@@ -34,34 +34,22 @@ int main() {
     bool wifi_conn = false;
     if (wifi.init()) {
         int index = 0;
-
         // Retry connection up to 5 times
         while (!wifi_conn && index < 5) {
             wifi_conn = wifi.connect_wifi();
             index++;
         }
-    }
-
-    // If Wi-Fi connected, connect to MQTT broker
-    if (wifi_conn) {
-
-        // Wait up to 3 seconds for MQTT connection to complete
-        mqtt.connect(IP_ADDR, CURRENT_PORT, "picoW-garage");
-        const absolute_time_t t_end = make_timeout_time_ms(3000);
-        while (!mqtt.is_connected() && absolute_time_diff_us(get_absolute_time(), t_end) < 0) {
-            network_poll(); // Pump lwIP / CYW43 events
-            sleep_ms(1);
-        }
+        // If Wi-Fi connected, connect to MQTT broker
+        if (wifi_conn)
+            mqtt.connect(IP_ADDR, CURRENT_PORT, "picoW-garage");
     }
 
     // Initialize Rotary Encoder
     RotaryEncoder encoder;
     GpioIrqDispatcher::register_handler(&encoder);
-    //g_encoder = &encoder;
     // Initialize buttons
     ButtonController btnContr;
     GpioIrqDispatcher::register_handler(&btnContr);
-    //g_btnContr = &btnContr;
     // Initialize LED controller
     LedController ledContr;
     // Initialize state machine

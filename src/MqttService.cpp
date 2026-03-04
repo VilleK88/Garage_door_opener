@@ -45,7 +45,7 @@ bool MqttService::connect(const char* broker_ip, const uint16_t port, const char
 
             if (err == ERR_OK)
                 return true;
-            printf("mqtt_client_connect failed: %d\n", static_cast<int>(err));
+            printf("mqtt client connect failed: %d\n", static_cast<int>(err));
         }
         else
             printf("Invalid broker IP\n");
@@ -99,8 +99,12 @@ void MqttService::on_mqtt_connection(mqtt_client_t* /*client*/, void* arg, const
         // Subscribe to the command topic.
         self->subscribe(TOPIC_CMD, 0);
 
-        // Publish an initial retained status so the latest state is visible immediately.
-        self->publish(TOPIC_STAT, "BOOT", 0, true);
+        if (!self->all_ready_conn) {
+            self->publish(TOPIC_STAT, "Boot", 0, true);
+            self->all_ready_conn = true;
+        }
+        else
+            self->publish(TOPIC_STAT, "Connection re-established", 0, true);
     } else {
         self->up = false;
         printf("MQTT connect failed, status=%d\n", static_cast<int>(status));
@@ -156,7 +160,9 @@ void MqttService::keep_connection_up() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (!is_connected() && now - last_try > 5000) {
         last_try = now;
-        connect(IP_ADDR, CURRENT_PORT, "picoW-garage");
+        if (connect(IP_ADDR, CURRENT_PORT, "picoW-garage")) {
+            std::cout << "Connection restored\n";
+        }
     }
 }
 

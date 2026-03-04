@@ -130,6 +130,8 @@ private:
     // Timing variables used by every_ms()
     bool last_ms_valid_{false};
     uint32_t last_ms_{0};
+
+    void print_calib_info() const;
 };
 
 #endif

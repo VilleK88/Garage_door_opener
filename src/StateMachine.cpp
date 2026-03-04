@@ -122,11 +122,7 @@ void StateMachine::calib_close_door_st() {
     // Left limit reached: record minimum position and proceed to step correction.
     if (left_hit) {
         lowest_pos = motor_step_pos;
-        // Debug prints for calibration results.
-        std::cout << "Calibration completed.\n";
-        std::cout << "Highest position: " << highest_pos << "\n";
-        std::cout << "Lowest position: " << lowest_pos << "\n";
-        std::cout << "Motor step position: " << motor_step_pos << "\n";
+        print_calib_info();
         next_state(CurrentState::step_correction);
     }
     else {
@@ -170,7 +166,7 @@ void StateMachine::step_correction_st() {
 void StateMachine::open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
-    // Stop opening if right limit is hit or we reached max margin.
+    // Stop opening if right limit is hit, or we reached max margin.
     if (right_hit || motor_step_pos >= highest_pos - pos_offset) {
         next_direction = false; // next operation should be closing
         // Persist direction and position on close completion.
@@ -192,7 +188,7 @@ void StateMachine::open_door_st() {
 void StateMachine::close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
-    // Stop closing if left limit is hit or we reached min margin.
+    // Stop closing if left limit is hit, or we reached min margin.
     if (left_hit || motor_step_pos <= lowest_pos + pos_offset) {
         next_direction = true; // next operation should be opening
         // Persist direction and position on close completion.
@@ -268,7 +264,6 @@ void StateMachine::handle_door() {
         else {
             // Door is moving: treat command as "stop" and invert next direction.
             next_direction = !next_direction;
-            std::cout << "Motor step position: " << motor_step_pos << "\n";
             next_state(CurrentState::idle);
         }
     }
@@ -381,4 +376,12 @@ bool StateMachine::every_ms(const uint32_t interval_ms) {
     }
 
     return false;
+}
+
+// Debug prints for calibration results.
+void StateMachine::print_calib_info() const {
+    std::cout << "Calibration completed.\n";
+    std::cout << "Highest position: " << highest_pos << "\n";
+    std::cout << "Lowest position: " << lowest_pos << "\n";
+    std::cout << "Motor step position: " << motor_step_pos << "\n";
 }

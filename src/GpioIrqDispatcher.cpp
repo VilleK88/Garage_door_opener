@@ -13,7 +13,7 @@ void GpioIrqDispatcher::register_handler(IGpioIrqHandler* h) {
 
 void GpioIrqDispatcher::init() {}
 
-void GpioIrqDispatcher::gpio_irq_thunk(uint gpio, uint32_t event_mask) {
+void GpioIrqDispatcher::gpio_irq_thunk(const uint gpio, const uint32_t event_mask) {
     for (size_t i = 0; i < count_; ++i) {
         handlers_[i]->on_gpio_irq(gpio, event_mask);
     }
