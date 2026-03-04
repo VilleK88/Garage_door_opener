@@ -1,5 +1,5 @@
-#include <iostream>
-#include <memory>
+//#include <iostream>
+//#include <memory>
 
 #include "pico/stdlib.h"
 #include "pico/util/queue.h"
@@ -70,11 +70,8 @@ int main() {
             network_poll();
             mqtt.keep_connection_up();
         }
-
         while (queue_try_remove(&events, &event)) {
-
             ledContr.light_switch(event);
-
             switch (event.type) {
                 case EV_CALIB:
                     if (event.data == 1) sm.next_state(CurrentState::init_calib);
@@ -97,7 +94,6 @@ int main() {
                     break;
             }
         }
-
         sm.run_sm();
         sleep_ms(1);
     }

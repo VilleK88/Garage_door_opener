@@ -8,7 +8,7 @@
 #include "LedController.h"
 
 StateMachine::StateMachine(MqttService& new_mqtt, LedController& newLedContr)
-    : stepMotor(coil_pins), mqtt(new_mqtt), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
+    : mqtt(new_mqtt), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
         right_limit(LIM_PIN_RIGHT)
 {
     std::cout << "Boot\n";
@@ -180,7 +180,6 @@ void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
         error = true;
-        //std::cout << "Fault state\n";
         std::cout << "Recalibration required.\n";
         eeprom.write_state(Eeprom::CALIB_ADDR, 0);
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);

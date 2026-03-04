@@ -43,7 +43,6 @@ public:
 private:
     std::array<uint, 3> led_pins{LED0, LED1, LED2};
     uint32_t last_blink_ms{0};
-    //bool blink_state{false};
 
     LedMode current_mode{LedMode::Idle};
 

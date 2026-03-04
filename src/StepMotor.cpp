@@ -1,9 +1,7 @@
 #include "StepMotor.h"
 #include "hardware/gpio.h"
-#include "pico/time.h"
 
-StepMotor::StepMotor(const std::array<uint, 4>& pins)
-    : coil_pins(pins) {}
+StepMotor::StepMotor() = default;
 
 void StepMotor::init_coil_pins() const {
     for (auto& coil : coil_pins) {

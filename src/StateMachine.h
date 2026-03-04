@@ -79,7 +79,7 @@ private:
     [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr, const std::string& str_st) const;
     [[nodiscard]] int init_st16(Eeprom::GenSt16 gst, uint16_t addr, const std::string& str_st) const;
 
-    std::string get_st_string(CurrentState st);
+    static std::string get_st_string(CurrentState st);
 
     void check_if_stuck();
     bool every_ms(uint32_t interval_ms);

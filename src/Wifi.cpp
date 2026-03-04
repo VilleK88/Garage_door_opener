@@ -11,35 +11,56 @@
 #include "src/StateMachine.h"
 #include "src/RotaryEncoder.h"
 
+// Initialize CYW43 Wi-Fi chip and networking stack
 bool Wifi::init() {
+
+    // Initialize Wi-Fi chip with selected country regulatory domain
     const int init_rc = cyw43_arch_init_with_country(CYW43_COUNTRY_FINLAND);
     printf("cyw43_arch_init rc=%d\n", init_rc);
+
+    // Initialization successful
     if (!init_rc) {
         std::cout << "cyw43 init completed\n";
         return true;
     }
+    // Initialization failed
     std::cout << "cyw43 init failed\n";
     return false;
 }
 
+// Connect Pico W to Wi-Fi access point
 bool Wifi::connect_wifi() {
+
+    // Enable station mode (client mode)
     cyw43_arch_enable_sta_mode();
 
+    // Load Wi-Fi credentials from configuration file
     auto SSID = WIFI_SSID;
     auto PASS = WIFI_PASS;
 
+    // Attempt connection with timeout
     if (cyw43_arch_wifi_connect_timeout_ms(SSID, PASS,
         CYW43_AUTH_WPA2_AES_PSK, CONN_TIMEOUT_MS)) {
+        // Connection attempt failed
         std::cout << "Wi-Fi connect failed\n";
         return connected;
         }
+
+    // Connection established
     connected = true;
     std::cout << "Wi-Fi connected\n";
+
+    // Wait until network interface is fully up and has an IP address
     while (!netif_default || !netif_is_up(netif_default) ||
         ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {
+
+        // Pump Wi-Fi / lwIP events
         cyw43_arch_poll();
         sleep_ms(100);
         }
+
+    // Optional: print assigned IP address
     //printf("Got IP: %s\n", ipaddr_ntoa(netif_ip_addr4(netif_default)));
+
     return connected;
 }
