@@ -8,10 +8,10 @@
 #include "utils/events.h"
 
 RotaryEncoder::RotaryEncoder() {
-    init_encoder();
+    init();
 }
 
-void RotaryEncoder::init_encoder() const {
+void RotaryEncoder::init() const {
     gpio_init(ENC_A);
     gpio_set_dir(ENC_A, GPIO_IN);
     gpio_init(ENC_B);
@@ -20,10 +20,10 @@ void RotaryEncoder::init_encoder() const {
         true, &gpio_callback);
 }
 
-void RotaryEncoder::on_gpio_irq(const uint gpio, const uint32_t event_mask) const {
+void RotaryEncoder::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
     if (gpio == ENC_A) {
         if (event_mask & GPIO_IRQ_EDGE_RISE) {
-            bool b_state = gpio_get(ENC_B);
+            const bool b_state = gpio_get(ENC_B);
             event_t ev;
             ev.type = EVENT_ENCODER;
             ev.data = b_state ? -1 : +1;

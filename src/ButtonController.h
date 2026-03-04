@@ -4,26 +4,32 @@
 
 #ifndef GARAGE_DOOR_OPENER_BUTTONUNIT_H
 #define GARAGE_DOOR_OPENER_BUTTONUNIT_H
-#include <cstdint>
 #include <vector>
 
+#include "IGpioIrqHandler.h"
 #include "pico/types.h"
 
-constexpr uint SW0 = 9;
-constexpr uint SW1 = 8;
-constexpr uint SW2 = 7;
 
-
-class ButtonController {
+class ButtonController final : public IGpioIrqHandler {
 public:
     ButtonController();
-    void init_buttons() const;
-
-    //uint SW0 = 9;
-    //uint SW1 = 8;
-    //uint SW2 = 7;
+    void on_gpio_irq(uint gpio, uint32_t event_mask) override;
 private:
+    void init() const;
+
+    uint SW0 = 9;
+    uint SW1 = 8;
+    uint SW2 = 7;
     std::vector<uint> pins{SW0, SW1, SW2};
+
+    static constexpr uint32_t DEBOUNCE_MS = 10;
+    uint32_t last_sw0_ms_{0};
+    uint32_t last_sw1_ms_{0};
+    uint32_t last_sw2_ms_{0};
+
+    bool sw0_down_{false};
+    bool sw2_down_{false};
+    bool calib_latched_{false};
 };
 
 
