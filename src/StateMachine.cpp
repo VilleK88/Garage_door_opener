@@ -205,8 +205,10 @@ void StateMachine::handle_door() {
             next_state(CurrentState::idle);
         }
     }
-    else
+    else {
         std::cout << "Calibrate first\n";
+        mqtt.publish(MqttService::TOPIC_STAT, "Calibrate first", 0, true);
+    }
 }
 
 void StateMachine::init_states() {

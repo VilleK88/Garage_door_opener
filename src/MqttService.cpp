@@ -2,7 +2,6 @@
 #include "../main.h"
 #include "utils/events.h"
 #include "pico/stdlib.h"
-//#include "hardware/pwm.h"
 #include "pico/util/queue.h"
 #include "pico/cyw43_arch.h"
 #include <iostream>
@@ -122,8 +121,6 @@ void MqttService::on_incoming_publish(void* arg, const char* topic, u32_t /*tot_
     std::snprintf(self->rx_topic, sizeof(self->rx_topic), "%s", topic ? topic : "");
 
     // Reset payload buffer state
-    //self->rx_len = 0;
-    //self->rx_buf[0] = '\0';
     self->reset_buffer();
 }
 
@@ -149,8 +146,6 @@ void MqttService::on_incoming_data(void* arg, const u8_t* data, const u16_t len,
         self->handle_command(self->rx_topic, self->rx_buf);
 
         // Reset buffer for next message
-        //self->rx_len = 0;
-        //self->rx_buf[0] = '\0';
         self->reset_buffer();
     }
 }
@@ -161,7 +156,7 @@ void MqttService::keep_connection_up() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     if (!is_connected() && now - last_try > 5000) {
         last_try = now;
-        connect(MY_IP_ADDR, CURRENT_PORT, "picoW-garage");
+        connect(IP_ADDR, CURRENT_PORT, "picoW-garage");
     }
 }
 
@@ -198,8 +193,6 @@ bool MqttService::handle_commands(const event_t &event) {
 // Process a complete inbound MQTT message.
 // If it is on the command topic, forward it to the main loop by pushing EV_MQTT_CMD to the queue.
 void MqttService::handle_command(const char* topic, const char* payload) {
-    //if (!topic || !payload) return;
-    //if (std::strcmp(topic, TOPIC_CMD) != 0) return;
     if (topic && payload) {
         // Only accept commands on the expected topic
         if (std::strcmp(topic, TOPIC_CMD) == 0) {
@@ -220,8 +213,6 @@ void MqttService::handle_command(const char* topic, const char* payload) {
 }
 
 void MqttService::reset_buffer() {
-    //self->rx_len = 0;
-    //self->rx_buf[0] = '\0';
     rx_len = 0;
     rx_buf[0] = '\0';
 }

@@ -2,9 +2,7 @@
 #define MQTTSERVICE_H
 #pragma once
 #include "main.h"
-
 #include <cstring>
-
 #include "lwip/apps/mqtt.h"
 #include "lwip/err.h"
 
