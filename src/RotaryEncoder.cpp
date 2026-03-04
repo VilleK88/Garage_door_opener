@@ -16,7 +16,6 @@ void RotaryEncoder::init_encoder() const {
     gpio_set_dir(ENC_A, GPIO_IN);
     gpio_init(ENC_B);
     gpio_set_dir(ENC_B, GPIO_IN);
-    //gpio_set_irq_enabled(ENC_A, GPIO_IRQ_EDGE_RISE, true);
     gpio_set_irq_enabled_with_callback(ENC_A, GPIO_IRQ_EDGE_RISE,
         true, &gpio_callback);
 }
