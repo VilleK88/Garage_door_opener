@@ -3,7 +3,6 @@
 #include <iostream>
 #include <array>
 #include "pico/types.h"
-//#define MOTOR_SLEEP_MS 1
 
 class StepMotor {
 public:

@@ -10,13 +10,11 @@
 // Enumeration describing all possible states of the garage door controller
 enum class CurrentState : uint8_t {
     idle = 0, // System idle, waiting for command
-    init_calib = 1, // Start calibration procedure
-    calib_open_door = 2, // Move door fully open during calibration
-    calib_close_door = 3, // Move door fully closed during calibration
-    step_correction = 4, // Correct step offset after calibration
-    open_door = 5, // Opening the door
-    close_door = 6, // Closing the door
-    error_state = 7 // Error state (motor fault, etc.)
+    calib_open_door = 1, // Move door fully open during calibration
+    calib_close_door = 2, // Move door fully closed during calibration
+    open_door = 3, // Opening the door
+    close_door = 4, // Closing the door
+    error_state = 5 // Error state (motor fault, etc.)
 };
 
 // Structure used to store 8-bit persistent state values with redundancy
@@ -71,7 +69,9 @@ private:
     int motor_step_pos{0};
     int lowest_pos{0};
     int highest_pos{0};
-    int pos_offset{500}; // safety margin near limits
+    //int pos_offset{0}; // safety margin near limits
+    //int right_offset{50};
+    //int left_offset{150};
 
     // Step timing parameters
     int step_ms{1};
@@ -85,10 +85,8 @@ private:
 
     // State handlers
     void idle_st();
-    void init_calib_st();
     void calib_open_door_st();
     void calib_close_door_st();
-    void step_correction_st();
     void open_door_st();
     void close_door_st();
     void error_st();
@@ -97,8 +95,8 @@ private:
     void init_states();
 
     // Helpers for reading persistent states
-    [[nodiscard]] int init_st(Eeprom::GenSt gst, uint16_t addr, const std::string& str_st) const;
-    [[nodiscard]] int init_st16(Eeprom::GenSt16 gst, uint16_t addr, const std::string& str_st) const;
+    [[nodiscard]] int init_st(Eeprom::GenSt& gst, uint16_t addr) const;
+    [[nodiscard]] int init_st16(Eeprom::GenSt16& gst, uint16_t addr) const;
 
     // Convert state enum to human-readable string
     static std::string get_st_string(CurrentState st);
@@ -115,10 +113,8 @@ private:
     // Table of state handler functions
     static constexpr Handler handlers[] = {
         &StateMachine::idle_st,
-        &StateMachine::init_calib_st,
         &StateMachine::calib_open_door_st,
         &StateMachine::calib_close_door_st,
-        &StateMachine::step_correction_st,
         &StateMachine::open_door_st,
         &StateMachine::close_door_st,
         &StateMachine::error_st

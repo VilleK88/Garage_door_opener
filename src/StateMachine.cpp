@@ -38,6 +38,13 @@ void StateMachine::next_state(const CurrentState st) {
     // If we are in an error condition, ensure error LED is reset when leaving/transitioning.
     if (error)
         ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
+    if (st == CurrentState::calib_open_door) {
+        ledContr.set_brightness(LedController::LED0, LedController::LIGHT_OFF);
+        ledContr.set_brightness(LedController::LED2, LedController::LIGHT_OFF);
+        // Starting calibration invalidates previous calibration state.
+        calibrated = false;
+        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
+    }
 
     // Convert state to readable string, print it, and publish retained status to MQTT.
     const std::string str_st = get_st_string(st);
@@ -59,12 +66,6 @@ void StateMachine::next_state(const CurrentState st) {
         last_encoder_change_ms = to_ms_since_boot(get_absolute_time());
     }
 
-    // Starting calibration invalidates previous calibration state.
-    if (st == CurrentState::init_calib) {
-        calibrated = false;
-        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
-    }
-
     // Commit the state transition and reset periodic timer helper.
     current_state = st;
     last_ms_valid_ = false;
@@ -75,34 +76,13 @@ void StateMachine::idle_st() {
 
 }
 
-// Calibration start: drive toward the left limit until it triggers.
-// Purpose: establish a known reference (zero) position.
-void StateMachine::init_calib_st() {
-    bool left_hit = false;
-    left_limit.detect_hit(left_hit, "Left");
-
-    // If left limit switch triggers, zero the encoder reference and proceed.
-    if (left_hit) {
-        encoder_pos = 0;
-        next_state(CurrentState::calib_open_door);
-    }
-    else {
-        // Step toward the left limit at a controlled step rate.
-        if (every_ms(step_ms))
-            stepMotor.step(-step);
-        // Detect stall (no encoder movement for too long).
-        check_if_stuck();
-    }
-}
-
 // Calibration: move toward the right limit.
-// Purpose: find maximum travel distance (highest_pos).
 void StateMachine::calib_open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     // Right limit reached: record maximum position and move to closing calibration.
     if (right_hit) {
-        highest_pos = motor_step_pos;
+        motor_step_pos = 0;
         next_state(CurrentState::calib_close_door);
     }
     else {
@@ -115,15 +95,32 @@ void StateMachine::calib_open_door_st() {
 }
 
 // Calibration: move back toward the left limit.
-// Purpose: find minimum travel distance (lowest_pos).
 void StateMachine::calib_close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     // Left limit reached: record minimum position and proceed to step correction.
     if (left_hit) {
-        lowest_pos = motor_step_pos;
+        if (motor_step_pos < 0) motor_step_pos = -motor_step_pos;
+        highest_pos = motor_step_pos;
+        motor_step_pos = 0;
+        encoder_pos = 0;
+        lowest_pos = 0;
+
         print_calib_info();
-        next_state(CurrentState::step_correction);
+
+        // After correction, set direction for next move and mark calibration complete.
+        error = false;
+        // Persist calibration results and current state.
+        eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
+        eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
+        eeprom.write_state16(Eeprom::HIGHEST_POS_ADDR, highest_pos);
+        next_direction = true;
+        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
+        calibrated = true;
+        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
+        std::cout << "Motor step position after correction: " << motor_step_pos << "\n";
+        // Return to idle ready for operation.
+        next_state(CurrentState::idle);
     }
     else {
         // Step motor toward close direction and update internal step position.
@@ -135,43 +132,13 @@ void StateMachine::calib_close_door_st() {
 
 }
 
-// Step correction: move away from the hard limit by pos_offset.
-// Purpose: avoid resting on the limit switch and create a safe margin.
-void StateMachine::step_correction_st() {
-    if (motor_step_pos >= lowest_pos + pos_offset) {
-        // After correction, set direction for next move and mark calibration complete.
-        next_direction = true;
-        calibrated = true;
-        error = false;
-        // Persist calibration results and current state.
-        eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
-        eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
-        eeprom.write_state16(Eeprom::HIGHEST_POS_ADDR, highest_pos);
-        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, 1);
-        eeprom.write_state(Eeprom::CALIB_ADDR, 1);
-        std::cout << "Motor step position after correction: " << motor_step_pos << "\n";
-        // Return to idle ready for operation.
-        next_state(CurrentState::idle);
-    }
-    else {
-        // Keep stepping away from the left limit until margin is reached.
-        if (every_ms(step_ms))
-            motor_step_pos += stepMotor.run_step_motor(step);
-        // Detect stall condition.
-        check_if_stuck();
-    }
-}
-
 // Opening state: move toward the right limit until limit/margin is reached.
 void StateMachine::open_door_st() {
     bool right_hit = false;
     right_limit.detect_hit(right_hit, "Right");
     // Stop opening if right limit is hit, or we reached max margin.
-    if (right_hit || motor_step_pos >= highest_pos - pos_offset) {
+    if (right_hit /*|| motor_step_pos >= highest_pos - pos_offset*/) {
         next_direction = false; // next operation should be closing
-        // Persist direction and position on close completion.
-        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
-        eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
@@ -181,6 +148,8 @@ void StateMachine::open_door_st() {
             motor_step_pos += stepMotor.run_step_motor(step);
         // Detect stall condition.
         check_if_stuck();
+        if (motor_step_pos > highest_pos)
+            next_state(CurrentState::error_state);
     }
 }
 
@@ -189,11 +158,8 @@ void StateMachine::close_door_st() {
     bool left_hit = false;
     left_limit.detect_hit(left_hit, "Left");
     // Stop closing if left limit is hit, or we reached min margin.
-    if (left_hit || motor_step_pos <= lowest_pos + pos_offset) {
+    if (left_hit /*|| motor_step_pos <= lowest_pos + pos_offset*/) {
         next_direction = true; // next operation should be opening
-        // Persist direction and position on close completion.
-        eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
-        eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
@@ -203,6 +169,8 @@ void StateMachine::close_door_st() {
             motor_step_pos += stepMotor.run_step_motor(-step);
         // Detect stall condition.
         check_if_stuck();
+        if (motor_step_pos < lowest_pos)
+            next_state(CurrentState::error_state);
     }
 }
 
@@ -235,8 +203,9 @@ void StateMachine::check_if_stuck() {
     if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
         error = true;
         std::cout << "Recalibration required.\n";
+        calibrated = false;
         // Invalidate calibration and "door moving" flag in EEPROM to prevent unsafe restore.
-        eeprom.write_state(Eeprom::CALIB_ADDR, 0);
+        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);
         next_state(CurrentState::error_state);
     }
@@ -285,14 +254,10 @@ void StateMachine::init_states() {
     // Pointers to variables to restore (first booleans, then 16-bit ints)
     const std::array bool_states = {&calibrated, &next_direction};
     const std::array int_states = {&motor_step_pos, &lowest_pos, &highest_pos};
-    // Human-readable labels for debug prints
-    const std::array str_states = {
-        "Calibration", "Next direction",
-        "Motor step position", "Lowest position", "Highest position"
-    };
+
     // Restore "door moving" flag first. If true, we treat it as unsafe shutdown.
     Eeprom::GenSt gst_door_mov;
-    const int door_mov_num = init_st(gst_door_mov, Eeprom::DOOR_MOV_ADDR, "Door moving");
+    const int door_mov_num = init_st(gst_door_mov, Eeprom::DOOR_MOV_ADDR);
     door_moving = door_mov_num;
 
     if(!door_moving) {
@@ -303,7 +268,7 @@ void StateMachine::init_states() {
                 // 8-bit redundant states
                 if (eeprom.validate_state(addr)) {
                     Eeprom::GenSt gst;
-                    const int num = init_st(gst, addr, str_states[index]);
+                    const int num = init_st(gst, addr);
                     *bool_states[index] = num != 0;
                 }
                 else
@@ -313,7 +278,7 @@ void StateMachine::init_states() {
                 // 16-bit redundant states, only meaningful if calibrated is true
                 if (eeprom.validate_state16(addr)) {
                     Eeprom::GenSt16 gst;
-                    *int_states[index - 2] = init_st16(gst, addr, str_states[index]);
+                    *int_states[index - 2] = init_st16(gst, addr);
                 }
                 else
                     std::cout << "State16 INVALID at addr: " << addr << "\n";
@@ -331,16 +296,14 @@ void StateMachine::init_states() {
 }
 
 // Read a redundant 8-bit state from EEPROM and return the stored value.
-int StateMachine::init_st(Eeprom::GenSt gst, const uint16_t addr, const std::string& str_st) const {
+int StateMachine::init_st(Eeprom::GenSt& gst, const uint16_t addr) const {
     eeprom.read_state(addr, &gst.state, &gst.not_state);
-    //std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
     return gst.state;
 }
 
 // Read a redundant 16-bit state from EEPROM and return the stored value.
-int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr, const std::string& str_st) const {
+int StateMachine::init_st16(Eeprom::GenSt16& gst, const uint16_t addr) const {
     eeprom.read_state16(addr, &gst.state, &gst.not_state);
-    //std::cout << str_st << " state loaded: " << static_cast<int>(gst.state) << "\n";
     return gst.state;
 }
 
@@ -348,10 +311,8 @@ int StateMachine::init_st16(Eeprom::GenSt16 gst, const uint16_t addr, const std:
 std::string StateMachine::get_st_string(const CurrentState st) {
     switch (st) {
         case CurrentState::idle: return "Idle state";
-        case CurrentState::init_calib: return "Initialize calibration state";
         case CurrentState::calib_open_door: return "Calibration open door state";
         case CurrentState::calib_close_door: return "Calibration close door state";
-        case CurrentState::step_correction: return "Step correction state";
         case CurrentState::open_door: return "Open door state";
         case CurrentState::close_door: return "Close door state";
         case CurrentState::error_state: return "Error state";
@@ -383,5 +344,4 @@ void StateMachine::print_calib_info() const {
     std::cout << "Calibration completed.\n";
     std::cout << "Highest position: " << highest_pos << "\n";
     std::cout << "Lowest position: " << lowest_pos << "\n";
-    std::cout << "Motor step position: " << motor_step_pos << "\n";
 }

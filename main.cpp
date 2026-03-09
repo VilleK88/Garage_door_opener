@@ -39,7 +39,6 @@ int main() {
             wifi_conn = wifi.connect_wifi();
             index++;
         }
-        // If Wi-Fi connected, connect to MQTT broker
         if (wifi_conn)
             mqtt.connect(IP_ADDR, CURRENT_PORT, "picoW-garage");
     }
@@ -69,10 +68,12 @@ int main() {
             ledContr.light_switch(event);
             switch (event.type) {
                 case EV_CALIB: // Calibration button combination event
-                    if (event.data == 1) sm.next_state(CurrentState::init_calib);
+                    if (event.data == 1)
+                        sm.next_state(CurrentState::calib_open_door);
                     break;
                 case EV_SW1: // Main door control button
-                    if (event.data == 1) sm.handle_door();
+                    if (event.data == 1)
+                        sm.handle_door();
                     break;
                 case EVENT_ENCODER: // Rotary encoder movement event
                     sm.update_position(sm.get_position() + event.data);
@@ -82,7 +83,7 @@ int main() {
                         if (mqtt.current_cmd == MqttService::TOGGLE)
                             sm.handle_door();
                         else if (mqtt.current_cmd == MqttService::CALIBRATE)
-                            sm.next_state(CurrentState::init_calib);
+                            sm.next_state(CurrentState::calib_open_door);
                     }
                     break;
                 default:
@@ -91,8 +92,6 @@ int main() {
         }
         // Run state machine logic
         sm.run_sm();
-        // Small delay to reduce CPU load
-        sleep_ms(1);
     }
 }
 
