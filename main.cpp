@@ -68,8 +68,10 @@ int main() {
             ledContr.light_switch(event);
             switch (event.type) {
                 case EV_CALIB: // Calibration button combination event
-                    if (event.data == 1)
+                    if (event.data == 1 && (sm.currentState() == CurrentState::idle ||
+                        sm.currentState() == CurrentState::error_state)) {
                         sm.next_state(CurrentState::calib_open_door);
+                    }
                     break;
                 case EV_SW1: // Main door control button
                     if (event.data == 1)

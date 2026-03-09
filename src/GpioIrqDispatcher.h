@@ -6,8 +6,6 @@
 #define GARAGE_DOOR_OPENER_GPIOIRQDISPATCHER_H
 #pragma once
 #include "pico/types.h"
-#include <cstddef>
-
 #include "IGpioIrqHandler.h"
 
 class GpioIrqDispatcher {

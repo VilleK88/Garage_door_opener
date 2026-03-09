@@ -3,6 +3,7 @@
 //
 
 #include "GpioIrqDispatcher.h"
+#include <cstddef>
 
 void GpioIrqDispatcher::register_handler(IGpioIrqHandler* h) {
     if (h) {

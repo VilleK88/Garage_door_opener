@@ -9,8 +9,8 @@
 
 // Constructor: initialize references, hardware modules, and restore persistent state.
 StateMachine::StateMachine(MqttService& new_mqtt, LedController& newLedContr)
-    : mqtt(new_mqtt), ledContr(newLedContr), left_limit(LIM_PIN_LEFT),
-        right_limit(LIM_PIN_RIGHT)
+    : mqtt(new_mqtt), ledContr(newLedContr), left_limit(LimitSwitch::LIM_PIN_LEFT),
+        right_limit(LimitSwitch::LIM_PIN_RIGHT)
 {
     std::cout << "Boot\n";
     // Initialize motor GPIOs and EEPROM storage
@@ -39,8 +39,6 @@ void StateMachine::next_state(const CurrentState st) {
     if (error)
         ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
     if (st == CurrentState::calib_open_door) {
-        ledContr.set_brightness(LedController::LED0, LedController::LIGHT_OFF);
-        ledContr.set_brightness(LedController::LED2, LedController::LIGHT_OFF);
         // Starting calibration invalidates previous calibration state.
         calibrated = false;
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
@@ -50,9 +48,9 @@ void StateMachine::next_state(const CurrentState st) {
     const std::string str_st = get_st_string(st);
     std::cout << get_st_string(st) << "\n";
     mqtt.publish(MqttService::TOPIC_STAT, str_st.c_str(), 0, true);
+    
     // When entering idle, mark motion complete and persist final state/position.
     if (st == CurrentState::idle) {
-        last_ms_valid_ = false;
         door_moving = false;
         // Persist key values so power cycles restore safely.
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
@@ -67,8 +65,8 @@ void StateMachine::next_state(const CurrentState st) {
     }
 
     // Commit the state transition and reset periodic timer helper.
-    current_state = st;
     last_ms_valid_ = false;
+    current_state = st;
 }
 
 // Idle state: no motor action. Waits for commands/events.
@@ -78,10 +76,8 @@ void StateMachine::idle_st() {
 
 // Calibration: move toward the right limit.
 void StateMachine::calib_open_door_st() {
-    bool right_hit = false;
-    right_limit.detect_hit(right_hit, "Right");
     // Right limit reached: record maximum position and move to closing calibration.
-    if (right_hit) {
+    if (right_limit.detect_hit("Right")) {
         motor_step_pos = 0;
         next_state(CurrentState::calib_close_door);
     }
@@ -96,10 +92,8 @@ void StateMachine::calib_open_door_st() {
 
 // Calibration: move back toward the left limit.
 void StateMachine::calib_close_door_st() {
-    bool left_hit = false;
-    left_limit.detect_hit(left_hit, "Left");
     // Left limit reached: record minimum position and proceed to step correction.
-    if (left_hit) {
+    if (left_limit.detect_hit("Left")) {
         if (motor_step_pos < 0) motor_step_pos = -motor_step_pos;
         highest_pos = motor_step_pos;
         motor_step_pos = 0;
@@ -134,10 +128,8 @@ void StateMachine::calib_close_door_st() {
 
 // Opening state: move toward the right limit until limit/margin is reached.
 void StateMachine::open_door_st() {
-    bool right_hit = false;
-    right_limit.detect_hit(right_hit, "Right");
-    // Stop opening if right limit is hit, or we reached max margin.
-    if (right_hit /*|| motor_step_pos >= highest_pos - pos_offset*/) {
+    // Stop opening if we reached max margin.
+    if (motor_step_pos >= highest_pos) {
         next_direction = false; // next operation should be closing
         std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
@@ -148,17 +140,17 @@ void StateMachine::open_door_st() {
             motor_step_pos += stepMotor.run_step_motor(step);
         // Detect stall condition.
         check_if_stuck();
-        if (motor_step_pos > highest_pos)
-            next_state(CurrentState::error_state);
+        if (motor_step_pos > highest_pos) {
+            std::cout << "Motor step position out off bounds: " << motor_step_pos << "\n";
+            to_error_st();
+        }
     }
 }
 
 // Closing state: move toward the left limit until limit/margin is reached.
 void StateMachine::close_door_st() {
-    bool left_hit = false;
-    left_limit.detect_hit(left_hit, "Left");
-    // Stop closing if left limit is hit, or we reached min margin.
-    if (left_hit /*|| motor_step_pos <= lowest_pos + pos_offset*/) {
+    // Stop closing if we reached min margin.
+    if (motor_step_pos <= lowest_pos) {
         next_direction = true; // next operation should be opening
         std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
@@ -169,15 +161,17 @@ void StateMachine::close_door_st() {
             motor_step_pos += stepMotor.run_step_motor(-step);
         // Detect stall condition.
         check_if_stuck();
-        if (motor_step_pos < lowest_pos)
-            next_state(CurrentState::error_state);
+        if (motor_step_pos < lowest_pos) {
+            std::cout << "Motor step position out off bounds:: " << motor_step_pos << "\n";
+            to_error_st();
+        }
     }
 }
 
 // Error state: blink an LED to indicate fault condition.
 // Uses non-blocking timing via every_ms().
 void StateMachine::error_st() {
-    if (every_ms(500)) {
+    if (every_ms(LedController::blink_time_ms)) {
         if (!ledContr.blink)
             ledContr.set_brightness(LedController::LED1, LedController::BR_MID);
         else
@@ -200,15 +194,8 @@ void StateMachine::update_position(const int new_position) {
 // for fault_max_time_ms, enter error state and require recalibration.
 void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
-        error = true;
-        std::cout << "Recalibration required.\n";
-        calibrated = false;
-        // Invalidate calibration and "door moving" flag in EEPROM to prevent unsafe restore.
-        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
-        eeprom.write_state(Eeprom::DOOR_MOV_ADDR, 0);
-        next_state(CurrentState::error_state);
-    }
+    if (door_moving && now - last_encoder_change_ms > fault_max_time_ms)
+        to_error_st();
 }
 
 // Getter for current encoder position.
@@ -323,7 +310,7 @@ std::string StateMachine::get_st_string(const CurrentState st) {
 // Non-blocking periodic helper.
 // Returns true once per interval_ms when called repeatedly.
 // Used to rate-limit stepping and blinking without blocking the main loop.
-bool StateMachine::every_ms(const uint32_t interval_ms) {
+bool StateMachine::every_ms(uint32_t interval_ms) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
     // Initialize on first call after entering a new state.
     if (!last_ms_valid_) {
@@ -344,4 +331,14 @@ void StateMachine::print_calib_info() const {
     std::cout << "Calibration completed.\n";
     std::cout << "Highest position: " << highest_pos << "\n";
     std::cout << "Lowest position: " << lowest_pos << "\n";
+}
+
+void StateMachine::to_error_st() {
+    error = true;
+    std::cout << "Recalibration required.\n";
+    calibrated = false;
+    eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
+    door_moving = false;
+    eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
+    next_state(CurrentState::error_state);
 }

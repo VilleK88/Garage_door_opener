@@ -17,7 +17,6 @@ private:
     uint IN4 = 13;
     std::array<uint, 4> coil_pins = {IN1, IN2, IN3, IN4};
     int COIL_PINS_SIZE = 4;
-    //int MOTOR_SLEEP_MS{1};
 };
 
 #endif

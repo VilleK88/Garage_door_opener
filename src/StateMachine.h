@@ -50,6 +50,9 @@ public:
     // Handles door open/close toggle logic
     void handle_door();
 
+    // Convert state enum to human-readable string
+    static std::string get_st_string(CurrentState st);
+
 private:
     // Hardware controllers
     StepMotor stepMotor;
@@ -69,7 +72,7 @@ private:
     int motor_step_pos{0};
     int lowest_pos{0};
     int highest_pos{0};
-    //int pos_offset{0}; // safety margin near limits
+    int pos_offset{0}; // safety margin near limits
     //int right_offset{50};
     //int left_offset{150};
 
@@ -98,9 +101,6 @@ private:
     [[nodiscard]] int init_st(Eeprom::GenSt& gst, uint16_t addr) const;
     [[nodiscard]] int init_st16(Eeprom::GenSt16& gst, uint16_t addr) const;
 
-    // Convert state enum to human-readable string
-    static std::string get_st_string(CurrentState st);
-
     // Detect if motor is stuck
     void check_if_stuck();
 
@@ -128,6 +128,7 @@ private:
     uint32_t last_ms_{0};
 
     void print_calib_info() const;
+    void to_error_st();
 };
 
 #endif

@@ -3,7 +3,6 @@
 //
 
 #include "ButtonController.h"
-
 #include "hardware/gpio.h"
 #include "pico/time.h"
 #include "utils/events.h"
@@ -34,22 +33,20 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
         return false;
     };
 
+    if (sw0_down_ && sw2_down_) {
+        constexpr event_t e{EV_CALIB, 1, {}};
+        queue_try_add(&events, &e);
+    }
+
     if (gpio == SW0) {
         if (debounce_ok(last_sw0_ms_)) {
             if (event_mask & GPIO_IRQ_EDGE_FALL) {
                 sw0_down_ = true;
                 constexpr event_t e{EV_SW0, 1, {}};
                 queue_try_add(&events, &e);
-
-                if (sw2_down_ && !calib_latched_) {
-                    calib_latched_ = true;
-                    constexpr event_t ce{EV_CALIB, 1, {}};
-                    queue_try_add(&events, &ce);
-                }
             }
             else if (event_mask & GPIO_IRQ_EDGE_RISE) {
                 sw0_down_ = false;
-                calib_latched_ = false;
                 constexpr event_t e{EV_SW0, 0, {}};
                 queue_try_add(&events, &e);
             }
@@ -76,18 +73,11 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
                 constexpr event_t e{EV_SW2, 1, {}};
                 queue_try_add(&events, &e);
             }
-
-            if (sw2_down_ && !calib_latched_) {
-                calib_latched_ = true;
-                constexpr event_t ce{EV_CALIB, 1, {}};
-                queue_try_add(&events, &ce);
+            else if (event_mask & GPIO_IRQ_EDGE_RISE) {
+                sw2_down_ = false;
+                constexpr event_t e{EV_SW2, 0, {}};
+                queue_try_add(&events, &e);
             }
-        }
-        else if (event_mask & GPIO_IRQ_EDGE_RISE) {
-            sw2_down_ = false;
-            calib_latched_ = false;
-            constexpr event_t e{EV_SW2, 0, {}};
-            queue_try_add(&events, &e);
         }
     }
 }

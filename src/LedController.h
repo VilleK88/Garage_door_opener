@@ -4,16 +4,7 @@
 #include "utils/events.h"
 #include <array>
 #include <cstdint>
-
 #include "pico/types.h"
-#include "hardware/pwm.h"
-
-enum class LedMode : uint8_t {
-    Idle,
-    Moving,
-    Calib,
-    Error
-};
 
 class LedController {
 public:
@@ -39,13 +30,11 @@ public:
     static constexpr uint LED2{20};
 
     bool blink{false};
+    static constexpr uint32_t blink_time_ms = 500;
 
 private:
     std::array<uint, 3> led_pins{LED0, LED1, LED2};
     uint32_t last_blink_ms{0};
-
-    LedMode current_mode{LedMode::Idle};
-
     uint clamp(int br);
 };
 

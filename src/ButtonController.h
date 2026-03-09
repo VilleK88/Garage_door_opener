@@ -5,7 +5,6 @@
 #ifndef GARAGE_DOOR_OPENER_BUTTONUNIT_H
 #define GARAGE_DOOR_OPENER_BUTTONUNIT_H
 #include <vector>
-
 #include "IGpioIrqHandler.h"
 #include "pico/types.h"
 
@@ -29,7 +28,6 @@ private:
 
     bool sw0_down_{false};
     bool sw2_down_{false};
-    bool calib_latched_{false};
 };
 
 
