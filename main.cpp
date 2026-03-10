@@ -7,7 +7,7 @@
 #include "src/Wifi.h"
 #include "config/wifi_config.h"
 #include "src/ButtonController.h"
-#include "src/Mqttservice.h"
+#include "src/MqttService.h"
 #include "src/RotaryEncoder.h"
 #include "utils/events.h"
 #include "src/GpioIrqDispatcher.h"
@@ -69,7 +69,7 @@ int main() {
             switch (event.type) {
                 case EV_CALIB: // Calibration button combination event
                     if (event.data == 1 && (sm.currentState() == CurrentState::idle ||
-                        sm.currentState() == CurrentState::error_state)) {
+                        sm.currentState() == CurrentState::error)) {
                         sm.next_state(CurrentState::calib_open_door);
                     }
                     break;

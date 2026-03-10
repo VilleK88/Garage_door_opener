@@ -35,22 +35,20 @@ void StateMachine::run_sm() {
 
 // Transition helper: handles bookkeeping, persistence, and status publishing.
 void StateMachine::next_state(const CurrentState st) {
-    // If we are in an error condition, ensure error LED is reset when leaving/transitioning.
-    if (error)
-        ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
-    if (st == CurrentState::calib_open_door) {
-        // Starting calibration invalidates previous calibration state.
-        calibrated = false;
-        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
-    }
-
     // Convert state to readable string, print it, and publish retained status to MQTT.
     const std::string str_st = get_st_string(st);
     std::cout << get_st_string(st) << "\n";
     mqtt.publish(MqttService::TOPIC_STAT, str_st.c_str(), 0, true);
+
+    if (st == CurrentState::calib_open_door) {
+        // Starting calibration invalidates previous calibration state.
+        calibrated = false;
+        ledContr.set_brightness(LedController::LED1, LedController::LIGHT_OFF);
+        eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
+    }
     
     // When entering idle, mark motion complete and persist final state/position.
-    if (st == CurrentState::idle) {
+    if (st == CurrentState::idle || st == CurrentState::error) {
         door_moving = false;
         // Persist key values so power cycles restore safely.
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
@@ -71,7 +69,7 @@ void StateMachine::next_state(const CurrentState st) {
 
 // Idle state: no motor action. Waits for commands/events.
 void StateMachine::idle_st() {
-
+    sleep_ms(1);
 }
 
 // Calibration: move toward the right limit.
@@ -103,7 +101,7 @@ void StateMachine::calib_close_door_st() {
         print_calib_info();
 
         // After correction, set direction for next move and mark calibration complete.
-        error = false;
+        //error = false;
         // Persist calibration results and current state.
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
@@ -243,43 +241,46 @@ void StateMachine::init_states() {
     const std::array int_states = {&motor_step_pos, &lowest_pos, &highest_pos};
 
     // Restore "door moving" flag first. If true, we treat it as unsafe shutdown.
-    Eeprom::GenSt gst_door_mov;
-    const int door_mov_num = init_st(gst_door_mov, Eeprom::DOOR_MOV_ADDR);
-    door_moving = door_mov_num;
+    if (eeprom.validate_state(Eeprom::DOOR_MOV_ADDR)) {
+        Eeprom::GenSt gst_door_mov;
+        const int door_mov_num = init_st(gst_door_mov, Eeprom::DOOR_MOV_ADDR);
+        door_moving = door_mov_num;
 
-    if(!door_moving) {
-        int index = 0;
-        // Restore booleans (calibrated, next_direction) and then positions if calibrated.
-        for (auto& addr : addresses) {
-            if (index < 2) {
-                // 8-bit redundant states
-                if (eeprom.validate_state(addr)) {
-                    Eeprom::GenSt gst;
-                    const int num = init_st(gst, addr);
-                    *bool_states[index] = num != 0;
+        if(!door_moving) {
+            int index = 0;
+            // Restore booleans (calibrated, next_direction) and then positions if calibrated.
+            for (auto& addr : addresses) {
+                if (index < 2) {
+                    // 8-bit redundant states
+                    if (eeprom.validate_state(addr)) {
+                        Eeprom::GenSt gst;
+                        const int num = init_st(gst, addr);
+                        *bool_states[index] = num != 0;
+                    }
+                    else
+                        std::cout << "State INVALID at addr: " << addr << "\n";
                 }
-                else
-                    std::cout << "State INVALID at addr: " << addr << "\n";
-            }
-            else if (calibrated) {
-                // 16-bit redundant states, only meaningful if calibrated is true
-                if (eeprom.validate_state16(addr)) {
-                    Eeprom::GenSt16 gst;
-                    *int_states[index - 2] = init_st16(gst, addr);
+                else if (calibrated) {
+                    // 16-bit redundant states, only meaningful if calibrated is true
+                    if (eeprom.validate_state16(addr)) {
+                        Eeprom::GenSt16 gst;
+                        *int_states[index - 2] = init_st16(gst, addr);
+                    }
+                    else
+                        std::cout << "State16 INVALID at addr: " << addr << "\n";
                 }
-                else
-                    std::cout << "State16 INVALID at addr: " << addr << "\n";
+                index++;
             }
-            index++;
+            std::cout << "Persistent states restored\n";
         }
-        std::cout << "Persistent states restored\n";
+        else {
+            // If device rebooted while motor was moving, force error state for safety.
+            std::cout << "Power loss during motor operation resulted in an error state\n";
+            current_state = CurrentState::error;
+        }
     }
-    else {
-        // If device rebooted while motor was moving, force error state for safety.
-        error = true;
-        current_state = CurrentState::error_state;
-        std::cout << "Power loss during motor operation resulted in an error state\n";
-    }
+    else
+        std::cout << "Door moving state invalid.\n";
 }
 
 // Read a redundant 8-bit state from EEPROM and return the stored value.
@@ -302,7 +303,7 @@ std::string StateMachine::get_st_string(const CurrentState st) {
         case CurrentState::calib_close_door: return "Calibration close door state";
         case CurrentState::open_door: return "Open door state";
         case CurrentState::close_door: return "Close door state";
-        case CurrentState::error_state: return "Error state";
+        case CurrentState::error: return "Error state";
         default: return "Idle state";
     }
 }
@@ -310,7 +311,7 @@ std::string StateMachine::get_st_string(const CurrentState st) {
 // Non-blocking periodic helper.
 // Returns true once per interval_ms when called repeatedly.
 // Used to rate-limit stepping and blinking without blocking the main loop.
-bool StateMachine::every_ms(uint32_t interval_ms) {
+bool StateMachine::every_ms(const uint32_t interval_ms) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
     // Initialize on first call after entering a new state.
     if (!last_ms_valid_) {
@@ -334,11 +335,8 @@ void StateMachine::print_calib_info() const {
 }
 
 void StateMachine::to_error_st() {
-    error = true;
     std::cout << "Recalibration required.\n";
     calibrated = false;
     eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
-    door_moving = false;
-    eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
-    next_state(CurrentState::error_state);
+    next_state(CurrentState::error);
 }

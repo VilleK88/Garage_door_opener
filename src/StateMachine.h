@@ -14,7 +14,7 @@ enum class CurrentState : uint8_t {
     calib_close_door = 2, // Move door fully closed during calibration
     open_door = 3, // Opening the door
     close_door = 4, // Closing the door
-    error_state = 5 // Error state (motor fault, etc.)
+    error = 5 // Error state (motor fault, etc.)
 };
 
 // Structure used to store 8-bit persistent state values with redundancy
@@ -66,15 +66,11 @@ private:
     bool door_moving{false}; // true while motor is running
     bool calibrated{false}; // true if door calibration completed
     bool next_direction{false}; // next direction (open/close)
-    bool error{false}; // error flag
 
     // Motor step positions
     int motor_step_pos{0};
     int lowest_pos{0};
     int highest_pos{0};
-    int pos_offset{0}; // safety margin near limits
-    //int right_offset{50};
-    //int left_offset{150};
 
     // Step timing parameters
     int step_ms{1};
