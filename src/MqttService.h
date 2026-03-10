@@ -31,9 +31,10 @@ public:
     bool handle_commands(const event_t &event);
 
     // MQTT topics used by this device.
-    static constexpr auto TOPIC_CMD  = "garage/door/cmd";
+    static constexpr auto TOPIC_CMD  = "garage/door/command";
     static constexpr auto TOPIC_STAT = "garage/door/status";
     static constexpr auto TOPIC_AVAIL = "garage/door/availability";
+    static constexpr auto TOPIC_RESP = "garage/door/response";
 
     // Command decoded from MQTT payload.
     typedef enum { STATUS, TOGGLE, CALIBRATE, UNKNOWN_CMD } cmd_type;
@@ -66,6 +67,8 @@ private:
     char rx_topic[128]{}; // last received topic
     char rx_buf[RX_MAX]{}; // assembled payload buffer
     size_t rx_len{0}; // current payload length in rx_buf
+
+    uint32_t conn_ms{5000};
 };
 
 

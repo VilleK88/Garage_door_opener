@@ -68,10 +68,8 @@ int main() {
             ledContr.light_switch(event);
             switch (event.type) {
                 case EV_CALIB: // Calibration button combination event
-                    if (event.data == 1 && (sm.currentState() == CurrentState::idle ||
-                        sm.currentState() == CurrentState::error)) {
+                    if (event.data == 1 && sm.can_calibrate())
                         sm.next_state(CurrentState::calib_open_door);
-                    }
                     break;
                 case EV_SW1: // Main door control button
                     if (event.data == 1)
@@ -84,7 +82,8 @@ int main() {
                     if (mqtt.handle_commands(event)) {
                         if (mqtt.current_cmd == MqttService::TOGGLE)
                             sm.handle_door();
-                        else if (mqtt.current_cmd == MqttService::CALIBRATE)
+                        else if (mqtt.current_cmd == MqttService::CALIBRATE &&
+                                sm.can_calibrate())
                             sm.next_state(CurrentState::calib_open_door);
                     }
                     break;

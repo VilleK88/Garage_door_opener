@@ -50,8 +50,15 @@ public:
     // Handles door open/close toggle logic
     void handle_door();
 
+    //[[nodiscard]] bool get_calibration() const { return calibrated; }
+
     // Convert state enum to human-readable string
     static std::string get_st_string(CurrentState st);
+    [[nodiscard]] std::string get_door_state_str() const;
+    [[nodiscard]] std::string get_error_state_str() const;
+    [[nodiscard]] std::string get_calib_state_str() const;
+    void publish_status() const;
+    bool can_calibrate() const;
 
 private:
     // Hardware controllers

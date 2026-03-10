@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include "config/wifi_config.h"
+#include "StateMachine.h"
 
 // Create/connect lwIP MQTT client, configure callbacks, set keep-alive and LWT.
 bool MqttService::connect(const char* broker_ip, const uint16_t port, const char* client_id) {
@@ -94,17 +95,17 @@ void MqttService::on_mqtt_connection(mqtt_client_t* /*client*/, void* arg, const
         printf("MQTT connected\n");
 
         // Publish retained "online" so remote controllers can see device availability.
-        self->publish(TOPIC_AVAIL, "online", 0, true);
+        self->publish(TOPIC_AVAIL, "Online", 0, true);
 
         // Subscribe to the command topic.
         self->subscribe(TOPIC_CMD, 0);
 
         if (!self->all_ready_conn) {
-            self->publish(TOPIC_STAT, "Boot", 0, true);
+            self->publish(TOPIC_RESP, "Boot", 0, true);
             self->all_ready_conn = true;
         }
         else
-            self->publish(TOPIC_STAT, "Connection re-established", 0, true);
+            self->publish(TOPIC_RESP, "Reconnected", 0, true);
     } else {
         self->up = false;
         printf("MQTT connect failed, status=%d\n", static_cast<int>(status));
@@ -120,10 +121,8 @@ void MqttService::on_mqtt_request(void* /*arg*/, const err_t result) {
 // Stores topic and resets the payload assembly buffer.
 void MqttService::on_incoming_publish(void* arg, const char* topic, u32_t /*tot_len*/) {
     auto* self = static_cast<MqttService*>(arg);
-
     // Copy topic safely into rx_topic
     std::snprintf(self->rx_topic, sizeof(self->rx_topic), "%s", topic ? topic : "");
-
     // Reset payload buffer state
     self->reset_buffer();
 }
@@ -158,7 +157,7 @@ void MqttService::on_incoming_data(void* arg, const u8_t* data, const u16_t len,
 void MqttService::keep_connection_up() {
     static uint32_t last_try = 0;
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (!is_connected() && now - last_try > 5000) {
+    if (!is_connected() && now - last_try > conn_ms) {
         last_try = now;
         if (connect(IP_ADDR, CURRENT_PORT, "picoW-garage")) {
             std::cout << "Connection restored\n";
@@ -173,23 +172,18 @@ bool MqttService::handle_commands(const event_t &event) {
     if (event.type == EV_MQTT_CMD) {
         std::cout << "Main got MQTT payload: " << event.payload << "\n";
 
-        if (std::strcmp(event.payload, "STATUS") == 0) {
-            publish("garage/door/status", "OK", 0, true);
-            current_cmd = STATUS;
-            return false; // query only
-        }
         if (std::strcmp(event.payload, "TOGGLE") == 0) {
             // Intended: trigger door toggle in main/state machine.
-            publish("garage/door/status", "TOGGLING", 0, true);
+            publish(TOPIC_RESP, "TOGGLING", 0, true);
             current_cmd = TOGGLE;
             return true;
         }
         if (std::strcmp(event.payload, "CALIBRATE") == 0) {
-            publish("garage/door/status", "CALIBRATION", 0, true);
+            publish(TOPIC_RESP, "CALIBRATION", 0, true);
             current_cmd = CALIBRATE;
             return true;
         }
-        publish("garage/door/status", "UNKNOWN_CMD", 0, true);
+        publish(TOPIC_RESP, "UNKNOWN_CMD", 0, true);
         current_cmd = UNKNOWN_CMD;
         return false;
     }

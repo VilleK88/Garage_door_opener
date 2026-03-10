@@ -35,10 +35,6 @@ void StateMachine::run_sm() {
 
 // Transition helper: handles bookkeeping, persistence, and status publishing.
 void StateMachine::next_state(const CurrentState st) {
-    // Convert state to readable string, print it, and publish retained status to MQTT.
-    const std::string str_st = get_st_string(st);
-    std::cout << get_st_string(st) << "\n";
-    mqtt.publish(MqttService::TOPIC_STAT, str_st.c_str(), 0, true);
 
     if (st == CurrentState::calib_open_door) {
         // Starting calibration invalidates previous calibration state.
@@ -61,6 +57,11 @@ void StateMachine::next_state(const CurrentState st) {
         eeprom.write_state(Eeprom::DOOR_MOV_ADDR, door_moving);
         last_encoder_change_ms = to_ms_since_boot(get_absolute_time());
     }
+
+    // Convert state to readable string, print it, and publish retained status to MQTT.
+    const std::string str_st = get_st_string(st);
+    std::cout << get_st_string(st) << "\n";
+    publish_status();
 
     // Commit the state transition and reset periodic timer helper.
     last_ms_valid_ = false;
@@ -100,8 +101,6 @@ void StateMachine::calib_close_door_st() {
 
         print_calib_info();
 
-        // After correction, set direction for next move and mark calibration complete.
-        //error = false;
         // Persist calibration results and current state.
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
@@ -129,7 +128,7 @@ void StateMachine::open_door_st() {
     // Stop opening if we reached max margin.
     if (motor_step_pos >= highest_pos) {
         next_direction = false; // next operation should be closing
-        std::cout << "Motor step position: " << motor_step_pos << "\n";
+        //std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
     else {
@@ -139,7 +138,7 @@ void StateMachine::open_door_st() {
         // Detect stall condition.
         check_if_stuck();
         if (motor_step_pos > highest_pos) {
-            std::cout << "Motor step position out off bounds: " << motor_step_pos << "\n";
+            //std::cout << "Motor step position out off bounds: " << motor_step_pos << "\n";
             to_error_st();
         }
     }
@@ -150,7 +149,7 @@ void StateMachine::close_door_st() {
     // Stop closing if we reached min margin.
     if (motor_step_pos <= lowest_pos) {
         next_direction = true; // next operation should be opening
-        std::cout << "Motor step position: " << motor_step_pos << "\n";
+        //std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
     else {
@@ -160,7 +159,7 @@ void StateMachine::close_door_st() {
         // Detect stall condition.
         check_if_stuck();
         if (motor_step_pos < lowest_pos) {
-            std::cout << "Motor step position out off bounds:: " << motor_step_pos << "\n";
+            //std::cout << "Motor step position out off bounds:: " << motor_step_pos << "\n";
             to_error_st();
         }
     }
@@ -224,7 +223,7 @@ void StateMachine::handle_door() {
     else {
         // Calibration must be done before normal operation.
         std::cout << "Calibrate first\n";
-        mqtt.publish(MqttService::TOPIC_STAT, "Calibrate first", 0, true);
+        publish_status();
     }
 }
 
@@ -276,11 +275,17 @@ void StateMachine::init_states() {
         else {
             // If device rebooted while motor was moving, force error state for safety.
             std::cout << "Power loss during motor operation resulted in an error state\n";
-            current_state = CurrentState::error;
+            calibrated = false;
+            eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
         }
     }
     else
         std::cout << "Door moving state invalid.\n";
+
+    if (calibrated)
+        next_state(CurrentState::idle);
+    else
+        next_state(CurrentState::error);
 }
 
 // Read a redundant 8-bit state from EEPROM and return the stored value.
@@ -299,13 +304,48 @@ int StateMachine::init_st16(Eeprom::GenSt16& gst, const uint16_t addr) const {
 std::string StateMachine::get_st_string(const CurrentState st) {
     switch (st) {
         case CurrentState::idle: return "Idle state";
-        case CurrentState::calib_open_door: return "Calibration open door state";
-        case CurrentState::calib_close_door: return "Calibration close door state";
-        case CurrentState::open_door: return "Open door state";
-        case CurrentState::close_door: return "Close door state";
+        case CurrentState::calib_open_door: return "Calibration opening door state";
+        case CurrentState::calib_close_door: return "Calibration closing door state";
+        case CurrentState::open_door: return "Opening door state";
+        case CurrentState::close_door: return "Closing door state";
         case CurrentState::error: return "Error state";
         default: return "Idle state";
     }
+}
+
+std::string StateMachine::get_door_state_str() const {
+    if (calibrated) {
+        if (motor_step_pos <= lowest_pos)
+            return "Closed";
+        if (motor_step_pos >= highest_pos)
+            return "Open";
+        return "In between";
+    }
+    return "In between";
+}
+
+std::string StateMachine::get_error_state_str() const {
+    return current_state == CurrentState::error ? "Door stuck" : "Normal";
+}
+
+std::string StateMachine::get_calib_state_str() const {
+    return calibrated ? "Calibrated" : "Not calibrated";
+}
+
+void StateMachine::publish_status() const {
+    char msg[128];
+    std::snprintf(msg, sizeof(msg),
+        "Door: %s, Error: %s, Calibration: %s.",
+        get_door_state_str().c_str(), get_error_state_str().c_str(),
+        get_calib_state_str().c_str());
+    mqtt.publish(MqttService::TOPIC_STAT, msg, 0, true);
+}
+
+bool StateMachine::can_calibrate() const {
+    if (current_state == CurrentState::idle ||
+        current_state == CurrentState::error)
+        return true;
+    return false;
 }
 
 // Non-blocking periodic helper.
