@@ -73,6 +73,7 @@ private:
     bool door_moving{false}; // true while motor is running
     bool calibrated{false}; // true if door calibration completed
     bool next_direction{false}; // next direction (open/close)
+    bool door_stuck{false};
 
     // Motor step positions
     int motor_step_pos{0};

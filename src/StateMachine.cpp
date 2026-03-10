@@ -111,6 +111,7 @@ void StateMachine::calib_close_door_st() {
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
         std::cout << "Motor step position after correction: " << motor_step_pos << "\n";
         // Return to idle ready for operation.
+        door_stuck = false;
         next_state(CurrentState::idle);
     }
     else {
@@ -191,8 +192,10 @@ void StateMachine::update_position(const int new_position) {
 // for fault_max_time_ms, enter error state and require recalibration.
 void StateMachine::check_if_stuck() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    if (door_moving && now - last_encoder_change_ms > fault_max_time_ms)
+    if (door_moving && now - last_encoder_change_ms > fault_max_time_ms) {
+        door_stuck = true;
         to_error_st();
+    }
 }
 
 // Getter for current encoder position.
@@ -275,8 +278,6 @@ void StateMachine::init_states() {
         else {
             // If device rebooted while motor was moving, force error state for safety.
             std::cout << "Power loss during motor operation resulted in an error state\n";
-            calibrated = false;
-            eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
         }
     }
     else
@@ -285,7 +286,7 @@ void StateMachine::init_states() {
     if (calibrated)
         next_state(CurrentState::idle);
     else
-        next_state(CurrentState::error);
+        to_error_st();
 }
 
 // Read a redundant 8-bit state from EEPROM and return the stored value.
@@ -325,7 +326,7 @@ std::string StateMachine::get_door_state_str() const {
 }
 
 std::string StateMachine::get_error_state_str() const {
-    return current_state == CurrentState::error ? "Door stuck" : "Normal";
+    return door_stuck ? "Door stuck" : "Normal";
 }
 
 std::string StateMachine::get_calib_state_str() const {
