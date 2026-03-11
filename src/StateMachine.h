@@ -132,7 +132,6 @@ private:
     uint32_t last_ms_{0};
     uint32_t idle_ms{1};
 
-    void print_calib_info() const;
     void to_error_st();
 };
 

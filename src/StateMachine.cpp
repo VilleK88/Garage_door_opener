@@ -95,14 +95,10 @@ void StateMachine::calib_close_door_st() {
     if (left_limit.detect_hit("Left")) {
         if (motor_step_pos < 0)
             motor_step_pos = -motor_step_pos;
-
         highest_pos = motor_step_pos;
         motor_step_pos = 0;
         encoder_pos = 0;
         lowest_pos = 0;
-
-        print_calib_info();
-
         // Persist calibration results and current state.
         eeprom.write_state16(Eeprom::STEP_POS_ADDR, motor_step_pos);
         eeprom.write_state16(Eeprom::LOWEST_POS_ADDR, lowest_pos);
@@ -111,9 +107,8 @@ void StateMachine::calib_close_door_st() {
         eeprom.write_state(Eeprom::NEXT_DIR_ADDR, next_direction);
         calibrated = true;
         eeprom.write_state(Eeprom::CALIB_ADDR, calibrated);
-        std::cout << "Motor step position after correction: " << motor_step_pos << "\n";
-        // Return to idle ready for operation.
         door_stuck = false;
+        std::cout << "Calibration completed.\n";
         next_state(CurrentState::idle);
     }
     else {
@@ -362,13 +357,6 @@ bool StateMachine::every_ms(const uint32_t interval_ms) {
     }
 
     return false;
-}
-
-// Debug prints for calibration results.
-void StateMachine::print_calib_info() const {
-    std::cout << "Calibration completed.\n";
-    std::cout << "Highest position: " << highest_pos << "\n";
-    std::cout << "Lowest position: " << lowest_pos << "\n";
 }
 
 void StateMachine::to_error_st() {
