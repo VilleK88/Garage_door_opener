@@ -70,7 +70,7 @@ void StateMachine::next_state(const CurrentState st) {
 
 // Idle state: no motor action. Waits for commands/events.
 void StateMachine::idle_st() {
-    sleep_ms(1);
+    sleep_ms(idle_ms);
 }
 
 // Calibration: move toward the right limit.
@@ -93,7 +93,9 @@ void StateMachine::calib_open_door_st() {
 void StateMachine::calib_close_door_st() {
     // Left limit reached: record minimum position and proceed to step correction.
     if (left_limit.detect_hit("Left")) {
-        if (motor_step_pos < 0) motor_step_pos = -motor_step_pos;
+        if (motor_step_pos < 0)
+            motor_step_pos = -motor_step_pos;
+
         highest_pos = motor_step_pos;
         motor_step_pos = 0;
         encoder_pos = 0;
@@ -129,7 +131,6 @@ void StateMachine::open_door_st() {
     // Stop opening if we reached max margin.
     if (motor_step_pos >= highest_pos) {
         next_direction = false; // next operation should be closing
-        //std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
     else {
@@ -138,10 +139,8 @@ void StateMachine::open_door_st() {
             motor_step_pos += stepMotor.run_step_motor(step);
         // Detect stall condition.
         check_if_stuck();
-        if (motor_step_pos > highest_pos) {
-            //std::cout << "Motor step position out off bounds: " << motor_step_pos << "\n";
+        if (motor_step_pos > highest_pos)
             to_error_st();
-        }
     }
 }
 
@@ -150,7 +149,6 @@ void StateMachine::close_door_st() {
     // Stop closing if we reached min margin.
     if (motor_step_pos <= lowest_pos) {
         next_direction = true; // next operation should be opening
-        //std::cout << "Motor step position: " << motor_step_pos << "\n";
         next_state(CurrentState::idle);
     }
     else {
@@ -159,10 +157,8 @@ void StateMachine::close_door_st() {
             motor_step_pos += stepMotor.run_step_motor(-step);
         // Detect stall condition.
         check_if_stuck();
-        if (motor_step_pos < lowest_pos) {
-            //std::cout << "Motor step position out off bounds:: " << motor_step_pos << "\n";
+        if (motor_step_pos < lowest_pos)
             to_error_st();
-        }
     }
 }
 
@@ -316,9 +312,9 @@ std::string StateMachine::get_st_string(const CurrentState st) {
 
 std::string StateMachine::get_door_state_str() const {
     if (calibrated) {
-        if (motor_step_pos <= lowest_pos)
+        if (motor_step_pos <= lowest_pos && !door_moving)
             return "Closed";
-        if (motor_step_pos >= highest_pos)
+        if (motor_step_pos >= highest_pos && !door_moving)
             return "Open";
         return "In between";
     }

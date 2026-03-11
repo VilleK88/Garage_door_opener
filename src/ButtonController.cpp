@@ -33,11 +33,6 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
         return false;
     };
 
-    if (sw0_down_ && sw2_down_) {
-        constexpr event_t e{EV_CALIB, 1, {}};
-        queue_try_add(&events, &e);
-    }
-
     if (gpio == SW0) {
         if (debounce_ok(last_sw0_ms_)) {
             if (event_mask & GPIO_IRQ_EDGE_FALL) {
@@ -79,5 +74,10 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
                 queue_try_add(&events, &e);
             }
         }
+    }
+
+    if (sw0_down_ && sw2_down_) {
+        constexpr event_t e{EV_CALIB, 1, {}};
+        queue_try_add(&events, &e);
     }
 }

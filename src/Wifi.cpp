@@ -58,9 +58,6 @@ bool Wifi::connect_wifi() {
         cyw43_arch_poll();
         sleep_ms(100);
         }
-
-    // Optional: print assigned IP address
-    //printf("Got IP: %s\n", ipaddr_ntoa(netif_ip_addr4(netif_default)));
-
+    
     return connected;
 }

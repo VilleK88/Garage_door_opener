@@ -1,7 +1,7 @@
 #ifndef LIMITSWITCH_H
 #define LIMITSWITCH_H
-#include <iostream>
 #pragma once
+#include <iostream>
 #include "pico/time.h"
 
 class LimitSwitch {

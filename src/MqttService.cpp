@@ -1,5 +1,4 @@
 #include "MqttService.h"
-#include "../main.h"
 #include "utils/events.h"
 #include "pico/stdlib.h"
 #include "pico/util/queue.h"
