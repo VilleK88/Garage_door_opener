@@ -3,7 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/PicoMQTT" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/lib/paho" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/btstack" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/cyw43-driver" vcs="Git" />

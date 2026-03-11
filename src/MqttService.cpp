@@ -34,7 +34,7 @@ bool MqttService::connect(const char* broker_ip, const uint16_t port, const char
             // Last Will and Testament (LWT):
             // If the device disconnects unexpectedly, broker publishes "offline" retained.
             ci.will_topic = TOPIC_AVAIL;
-            ci.will_msg = "offline";
+            ci.will_msg = "Offline";
             ci.will_qos = 0;
             ci.will_retain = 1;
 

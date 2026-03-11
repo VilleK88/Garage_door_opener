@@ -46,7 +46,6 @@ add_executable(${PROJECT_NAME}
         utils/events.h
         src/ButtonController.cpp
         src/ButtonController.h
-        src/IGpioIrqHandler.cpp
         src/IGpioIrqHandler.h
         src/GpioIrqDispatcher.cpp
         src/GpioIrqDispatcher.h

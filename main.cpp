@@ -24,7 +24,7 @@ int main() {
     // Initialize chosen serial port
     stdio_init_all();
     // Initialize event queue for Interrupt Service Routine (ISR)
-    queue_init(&events, sizeof(event_t), 128);
+    queue_init(&events, sizeof(event_t), EVENT_QUEUE_SIZE);
 
     // Create Wi-Fi and MQTT service objects
     Wifi wifi;

@@ -20,4 +20,6 @@ typedef struct {
 // Global event queue used by ISR (Interrupt Service Routine) and main loop
 extern queue_t events;
 
+constexpr size_t EVENT_QUEUE_SIZE = 256;
+
 #endif //GARAGE_DOOR_OPENER_EVENTS_H
