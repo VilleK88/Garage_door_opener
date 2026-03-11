@@ -35,14 +35,14 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
 
     if (gpio == SW0) {
         if (debounce_ok(last_sw0_ms_)) {
-            if (event_mask & GPIO_IRQ_EDGE_FALL) {
-                sw0_down_ = true;
-                constexpr event_t e{EV_SW0, 1, {}};
-                queue_try_add(&events, &e);
-            }
-            else if (event_mask & GPIO_IRQ_EDGE_RISE) {
+            if (event_mask & GPIO_IRQ_EDGE_RISE) {
                 sw0_down_ = false;
                 constexpr event_t e{EV_SW0, 0, {}};
+                queue_try_add(&events, &e);
+            }
+            else if (event_mask & GPIO_IRQ_EDGE_FALL) {
+                sw0_down_ = true;
+                constexpr event_t e{EV_SW0, 1, {}};
                 queue_try_add(&events, &e);
             }
         }
@@ -50,12 +50,12 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
 
     if (gpio == SW1) {
         if (debounce_ok(last_sw1_ms_)) {
-            if (event_mask & GPIO_IRQ_EDGE_FALL) {
-                constexpr event_t e{EV_SW1, 1, {}};
+            if (event_mask & GPIO_IRQ_EDGE_RISE) {
+                constexpr event_t e{EV_SW1, 0, {}};
                 queue_try_add(&events, &e);
             }
-            else if (event_mask & GPIO_IRQ_EDGE_RISE) {
-                constexpr event_t e{EV_SW1, 0, {}};
+            else if (event_mask & GPIO_IRQ_EDGE_FALL) {
+                constexpr event_t e{EV_SW1, 1, {}};
                 queue_try_add(&events, &e);
             }
         }
@@ -63,14 +63,14 @@ void ButtonController::on_gpio_irq(const uint gpio, const uint32_t event_mask) {
 
     if (gpio == SW2) {
         if (debounce_ok(last_sw2_ms_)) {
-            if (event_mask & GPIO_IRQ_EDGE_FALL) {
-                sw2_down_ = true;
-                constexpr event_t e{EV_SW2, 1, {}};
-                queue_try_add(&events, &e);
-            }
-            else if (event_mask & GPIO_IRQ_EDGE_RISE) {
+            if (event_mask & GPIO_IRQ_EDGE_RISE) {
                 sw2_down_ = false;
                 constexpr event_t e{EV_SW2, 0, {}};
+                queue_try_add(&events, &e);
+            }
+            else if (event_mask & GPIO_IRQ_EDGE_FALL) {
+                sw2_down_ = true;
+                constexpr event_t e{EV_SW2, 1, {}};
                 queue_try_add(&events, &e);
             }
         }

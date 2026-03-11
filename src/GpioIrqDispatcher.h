@@ -14,7 +14,7 @@ public:
     static void init();
     static void gpio_irq_thunk(uint gpio, uint32_t event_mask);
 private:
-    static constexpr size_t MAX_HANDLERS = 8;
+    static constexpr size_t MAX_HANDLERS = 2;
     static inline IGpioIrqHandler* handlers_[MAX_HANDLERS]{};
     static inline size_t count_{0};
 };
