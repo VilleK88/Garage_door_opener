@@ -1,3 +1,5 @@
+## Garage Door Opener  
+
 ## Project Specifications
 
 ### Core Functionality
