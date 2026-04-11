@@ -1,4 +1,4 @@
-## Garage Door Opener  
+# Garage Door Opener  
 
 ## Project Specifications
 
