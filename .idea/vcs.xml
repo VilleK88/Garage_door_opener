@@ -4,11 +4,12 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/PicoMQTT" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/btstack" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/cyw43-driver" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/lwip" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/mbedtls" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/mbedtls/framework" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/lib/tinyusb" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/btstack" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/cyw43-driver" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/lwip" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/mbedtls" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/tinyusb" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../../../pico/pico-sdk/pico-sdk/lib/tinyusb/hw/mcu/raspberry_pi/Pico-PIO-USB" vcs="Git" />
   </component>
 </project>

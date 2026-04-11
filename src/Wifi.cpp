@@ -49,15 +49,5 @@ bool Wifi::connect_wifi() {
     // Connection established
     connected = true;
     std::cout << "Wi-Fi connected\n";
-
-    // Wait until network interface is fully up and has an IP address
-    while (!netif_default || !netif_is_up(netif_default) ||
-        ip4_addr_isany_val(*netif_ip4_addr(netif_default))) {
-
-        // Pump Wi-Fi / lwIP events
-        cyw43_arch_poll();
-        sleep_ms(100);
-        }
-    
     return connected;
 }
