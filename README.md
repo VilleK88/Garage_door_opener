@@ -1,40 +1,90 @@
-Project specifications
-Door opener must have the following functionality:
-• Calibration: Pressing SW0 and SW2 at the same time starts calibration. During calibration
-the door is run up and down and the number of steps between up and down position is
-determined using the limit switches and the rotary encoder to detect when the door stops at
-both ends. It is safe to run the motor against the limit switch body during calibration, but a
-properly implemented program should stop the motor when the switch is closed but the
-block does not yet hit the body of the switch. After calibration the door may not hit the body
-of either limit switch during normal operation.
-• Status reporting: Program reports the following status through MQTT
-o Door state: Open, Closed, In between
-o Error state: Normal, Door stuck
-o Calibration state: Calibrated/Not calibrated
-• Local operation: Pressing SW1 has following functionality:
-o Door is closed → door starts to open
-o Door open → door starts to close
-o Door is current opening or closing → door stops
-o Door was earlier stopped by pressing the button → door starts movement to the
-opposite direction (stopped during opening→close and vice versa)
-• If the door gets stuck during opening/closing the motor is stopped, error state is reported,
-and door goes to not calibrated state.
-• Opening button may not work in the non-calibrated state.
-• Remote control may not work int the non-calibrated state.
-• Status must be indicated locally using LEDs. Error state must be indicated by blinking an LED.
-Minimum requirements
-The door can be operated locally, and calibration rules work as described earlier. Object orientation is
-used in some parts of the program. Meeting minimum requirements gives you 50 points.
-Advanced requirements
-Program is implemented in object-oriented style.
-Program preserves calibration and door state across power down or reboot.
-Objects have clear responsibilities and reflect entities in the application/hardware.
-Program sends status messages to an MQTT-server using topic “garage/door/status”.
-Program subscribes to topic “garage/door/command” and executes the received commands.
-Command responses are sent to topic “garage/door/response”. Response must contain the
-command result if command was successfully executed or an error message if command can’t be
-completed. Note that status of the door must also be reported to “garage/door/status” if the
-command changes door status. User must be able to perform same operations through remote
-commands as with the local (button) interface.
-Additional remote features count towards higher grade provided that the requirements stated above
-are met.
+## Project Specifications
+
+### Core Functionality
+
+#### Calibration
+- Calibration is initiated by pressing SW0 and SW2 simultaneously.
+- During calibration:
+  - The door moves fully up and down.
+  - The total number of steps is measured using:
+    - Limit switches
+    - Rotary encoder
+  - The system detects when the door reaches both end positions.
+- It is mechanically safe to run the motor against the limit switch body during calibration, but:
+  - A correct implementation should stop the motor as soon as the switch is triggered, before physical impact.
+- After calibration:
+  - The door must not hit the limit switch body during normal operation.
+
+#### Status Reporting (MQTT)
+The system reports its status via MQTT:
+
+- Door State:
+  - Open
+  - Closed
+  - In between
+
+- Error State:
+  - Normal
+  - Door stuck
+
+- Calibration State:
+  - Calibrated
+  - Not calibrated
+
+#### Local Operation (SW1)
+Button SW1 controls the door as follows:
+
+- If the door is closed → starts opening
+- If the door is open → starts closing
+- If the door is moving → stops
+- If the door was previously stopped manually:
+  - Movement resumes in the opposite direction
+
+#### Safety Behavior
+- If the door becomes stuck during movement:
+  - The motor is stopped immediately
+  - Error state is reported
+  - System resets to Not calibrated
+
+- In non-calibrated state:
+  - Local operation is disabled
+  - Remote control is disabled
+
+#### LED Status Indication
+- System status is indicated using LEDs
+- Error state is indicated by a blinking LED
+
+## Minimum Requirements
+- Door can be operated locally
+- Calibration behaves as specified
+- Program uses object-oriented design in some parts
+
+Meeting minimum requirements gives 50 points.
+
+## Advanced Requirements
+- Fully object-oriented implementation
+- Calibration and door state are preserved across reboot/power loss
+- Clear object structure reflecting hardware/components
+
+### MQTT Integration
+
+- Publish (status):
+  garage/door/status
+
+- Subscribe (commands):
+  garage/door/command
+
+- Publish (responses):
+  garage/door/response
+
+### Remote Control Features
+- Execute commands received via MQTT
+- Send response messages:
+  - Success → command result
+  - Failure → error message
+- If a command changes door state:
+  - Updated state must also be published to garage/door/status
+- Remote control must support the same functionality as local operation
+
+## Additional Features
+Additional remote features can improve grading, provided all requirements above are met.
