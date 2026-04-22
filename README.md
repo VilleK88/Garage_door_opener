@@ -1,92 +1,36 @@
 # Garage Door Opener
 
-## Project Specifications
+Object-oriented embedded garage door opener in C/C++ with motor calibration, limit switches, rotary encoder feedback, EEPROM persistence, and MQTT-based remote control.
 
-### Core Functionality
+## Overview
+This project implements a fully functional embedded system for controlling a garage door. It supports both local operation and remote control via MQTT, while maintaining persistent state across restarts.
 
-#### Calibration
-- Calibration is initiated by pressing SW0 and SW2 simultaneously.
-- During calibration:
-  - The door moves fully up and down.
-  - The total number of steps is measured using:
-    - Limit switches
-    - Rotary encoder
-  - The system detects when the door reaches both end positions.
-- It is mechanically safe to run the motor against the limit switch body during calibration, but:
-  - A correct implementation should stop the motor as soon as the switch is triggered, before physical impact.
-- After calibration:
-  - The door must not hit the limit switch body during normal operation.
+The system is designed with modular components to separate hardware control, state management, and communication.
 
-#### Status Reporting (MQTT)
-The system reports its status via MQTT:
+## Key Features
+- Motor control with calibration and limit switches
+- Rotary encoder for position tracking
+- Persistent state storage using EEPROM
+- Local control via physical buttons
+- Remote monitoring and control via MQTT
+- Error detection and safe state handling
+- Modular architecture with clear separation of concerns
 
-- Door State:
-  - Open
-  - Closed
-  - In between
+## Architecture
+The system is divided into multiple components:
+- `StateMachine` – controls system states and transitions
+- `StepMotor` – handles motor movement
+- `LimitSwitch` – detects physical boundaries
+- `RotaryEncoder` – tracks door position
+- `MqttService` – handles remote communication
+- `Eeprom` – manages persistent storage
+- `ButtonController` – handles user input
 
-- Error State:
-  - Normal
-  - Door stuck
+## Technologies
+- C / C++
+- Embedded systems programming
+- MQTT protocol
+- EEPROM persistence
 
-- Calibration State:
-  - Calibrated
-  - Not calibrated
-
-#### Local Operation (SW1)
-Button SW1 controls the door as follows:
-
-- If the door is closed → starts opening
-- If the door is open → starts closing
-- If the door is moving → stops
-- If the door was previously stopped manually:
-  - Movement resumes in the opposite direction
-
-#### Safety Behavior
-- If the door becomes stuck during movement:
-  - The motor is stopped immediately
-  - Error state is reported
-  - System resets to Not calibrated
-
-- In non-calibrated state:
-  - Local operation is disabled
-  - Remote control is disabled
-
-#### LED Status Indication
-- System status is indicated using LEDs
-- Error state is indicated by a blinking LED
-
-## Minimum Requirements
-- Door can be operated locally
-- Calibration behaves as specified
-- Program uses object-oriented design in some parts
-
-Meeting minimum requirements gives 50 points.
-
-## Advanced Requirements
-- Fully object-oriented implementation
-- Calibration and door state are preserved across reboot/power loss
-- Clear object structure reflecting hardware/components
-
-### MQTT Integration
-
-- Publish (status):
-  garage/door/status
-
-- Subscribe (commands):
-  garage/door/command
-
-- Publish (responses):
-  garage/door/response
-
-### Remote Control Features
-- Execute commands received via MQTT
-- Send response messages:
-  - Success → command result
-  - Failure → error message
-- If a command changes door state:
-  - Updated state must also be published to garage/door/status
-- Remote control must support the same functionality as local operation
-
-## Additional Features
-Additional remote features can improve grading, provided all requirements above are met.
+## Notes
+This project focuses on reliability, modular design, and real-world embedded system constraints.
